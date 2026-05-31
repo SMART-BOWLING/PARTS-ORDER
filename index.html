@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -88,6 +88,7 @@ button:disabled{opacity:0.6;transform:none;}
             </div>
         </div>
         
+        <!-- Фильтрация -->
         <div class="filter-section">
             <div class="filter-group">
                 <select id="statusFilter">
@@ -113,7 +114,9 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 
 <script>
+// ==================== КОНФИГУРАЦИЯ ====================
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0RzP7Pp_XQ5h3KibStxSuZ55QnS9s-QvsTST_gQiaQYGSvLQYnpuKcI35XRcvbsxwYg/exec';
+
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
 const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
@@ -123,14 +126,17 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
+// Функция для форматирования даты
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
+    
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
+    
     return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
 }
 
@@ -187,47 +193,56 @@ function applyFilters() {
     
     if (searchQuery) {
         filteredOrders = filteredOrders.filter(order => 
-            (order.partNumber && order.partNumber.toLowerCase().includes(searchQuery)) ||
-            (order.club && order.club.toLowerCase().includes(searchQuery))
+            order.partNumber.toLowerCase().includes(searchQuery) ||
+            order.club.toLowerCase().includes(searchQuery)
         );
     }
     
     renderOrders(filteredOrders);
 }
 
-// АВТОМАТИЧЕСКАЯ ЗАГРУЗКА при входе
-async function autoLoadOrders() {
+async function loadOrders(showLoading = true) {
     if (isLoading) return;
     isLoading = true;
     
+    const container = document.getElementById('ordersList');
+    
+    if (container && showLoading) {
+        container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+    }
+    
     try {
         const orders = await callScriptAsync('getOrders');
-        if (orders && !orders.error) {
-            allOrders = Array.isArray(orders) ? orders : [];
-            applyFilters();
-            console.log(`✅ Автозагрузка: ${allOrders.length} заказов`);
+        
+        if (orders && orders.error) throw new Error(orders.error);
+        
+        allOrders = Array.isArray(orders) ? orders : [];
+        
+        applyFilters();
+        
+        if (allOrders.length === 0 && container) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
         }
+        
+        showToast(`✅ Загружено ${allOrders.length} заказов`);
+        
+        return allOrders;
     } catch(err) {
-        console.error('Ошибка автозагрузки:', err);
-        const container = document.getElementById('ordersList');
-        if (container && allOrders.length === 0) {
-            container.innerHTML = `<div class="empty-state">⚠️ Ошибка загрузки<br><br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;">Обновить страницу</button></div>`;
+        console.error('Ошибка загрузки:', err);
+        if (container) {
+            container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br>
+            <button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px;">
+            <i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         }
+        showToast(`❌ Ошибка загрузки: ${err.message}`, true);
+        return [];
     } finally {
         isLoading = false;
     }
 }
 
-// КНОПКА ОБНОВИТЬ - МГНОВЕННЫЙ ПОКАЗ (без запроса)
-function manualRefresh() {
-    if (allOrders.length > 0) {
-        applyFilters();
-        showToast(`📋 Показано ${allOrders.length} заказов`, false);
-    } else if (isLoading) {
-        showToast(`⏳ Данные загружаются, подождите...`, false);
-    } else {
-        showToast(`📭 Нет данных, перезагрузите страницу`, true);
-    }
+async function manualRefresh() {
+    await loadOrders(true);
 }
 
 async function saveOrder() {
@@ -246,8 +261,12 @@ async function saveOrder() {
     
     try {
         const now = new Date();
+        
         const result = await callScriptAsync('addOrder', { 
-            partNumber, quantity, club, timestamp: now.toISOString()
+            partNumber, 
+            quantity, 
+            club,
+            timestamp: now.toISOString()
         });
         
         if (result && result.error) throw new Error(result.error);
@@ -258,8 +277,7 @@ async function saveOrder() {
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        // После сохранения перезагружаем данные
-        await autoLoadOrders();
+        await loadOrders(true);
         
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
@@ -284,7 +302,9 @@ async function updateStatus(row, newStatus, selectElement) {
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
+        
         applyFilters();
+        
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
@@ -312,7 +332,9 @@ async function deleteOrder(row, cardElement) {
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
+        
         applyFilters();
+        
         showToast('🗑 Заказ удалён');
     } catch(err) {
         showToast(`Ошибка: ${err.message}`, true);
@@ -349,11 +371,14 @@ function renderOrders(orders) {
             try {
                 const date = new Date(order.timestamp);
                 dateStr = formatDateTime(date);
-            } catch(e) { dateStr = '—'; }
+            } catch(e) {
+                dateStr = '—';
+            }
         }
         
         const table = document.createElement('table'); 
         table.className = 'order-table';
+        
         const currentStatus = order.status || 'Активно';
         
         const rows = [
@@ -365,14 +390,18 @@ function renderOrders(orders) {
         
         rows.forEach(r => {
             const tr = document.createElement('tr');
-            const tdL = document.createElement('td'); tdL.textContent = r.label;
-            const tdV = document.createElement('td'); tdV.textContent = r.value;
-            tr.appendChild(tdL); tr.appendChild(tdV);
+            const tdL = document.createElement('td'); 
+            tdL.textContent = r.label;
+            const tdV = document.createElement('td');
+            tdV.textContent = r.value;
+            tr.appendChild(tdL); 
+            tr.appendChild(tdV);
             table.appendChild(tr);
         });
         
         const statusTr = document.createElement('tr');
-        const statusTdL = document.createElement('td'); statusTdL.textContent = 'Статус';
+        const statusTdL = document.createElement('td');
+        statusTdL.textContent = 'Статус';
         const statusTdV = document.createElement('td');
         
         const select = document.createElement('select');
@@ -403,6 +432,16 @@ function renderOrders(orders) {
         card.appendChild(actionDiv);
         container.appendChild(card);
     });
+}
+
+function escapeHtml(str) { 
+    if(!str) return ''; 
+    return String(str).replace(/[&<>]/g, function(m){
+        if(m==='&') return '&amp;'; 
+        if(m==='<') return '&lt;'; 
+        if(m==='>') return '&gt;'; 
+        return m;
+    }); 
 }
 
 // ========== АВТОРИЗАЦИЯ ==========
@@ -492,14 +531,7 @@ async function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    // ПОКАЗЫВАЕМ СПИННЕР ЗАГРУЗКИ
-    const container = document.getElementById('ordersList');
-    if (container) {
-        container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Автоматическая загрузка данных...</div>';
-    }
-    
-    // АВТОМАТИЧЕСКАЯ ЗАГРУЗКА (без кнопки!)
-    await autoLoadOrders();
+    await loadOrders(true);
 }
 
 function parseJwt(token) {
@@ -507,7 +539,9 @@ function parseJwt(token) {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/');
         return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-    } catch(e){ return {}; }
+    } catch(e){ 
+        return {}; 
+    }
 }
 
 function signOut() { 
@@ -521,16 +555,15 @@ window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
+window.loadOrders = loadOrders;
 window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
 
-// ПРИ ПЕРЕЗАГРУЗКЕ СТРАНИЦЫ - СРАЗУ ЗАГРУЖАЕМ ДАННЫЕ
 window.addEventListener('load', async () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
     
     if (logged && savedEmail) {
-        // Восстанавливаем интерфейс
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('user-info').style.display = 'flex';
         document.getElementById('main-content').style.display = 'block';
@@ -562,23 +595,17 @@ window.addEventListener('load', async () => {
             }
             
             if (hasAccess) {
-                // ПОКАЗЫВАЕМ СПИННЕР
-                const container = document.getElementById('ordersList');
-                if (container) {
-                    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Автоматическая загрузка данных...</div>';
-                }
-                // АВТОМАТИЧЕСКАЯ ЗАГРУЗКА ПРИ ПЕРЕЗАГРУЗКЕ
-                await autoLoadOrders();
+                document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+                await loadOrders(true);
             } else {
                 showToast('❌ Нет доступа к таблице', true);
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state">⛔ Нет доступа к таблице</div>';
             }
         } catch(err) {
             console.error('Ошибка инициализации:', err);
-            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка: ${err.message}<br><br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;">Обновить страницу</button></div>`;
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         }
     } else {
-        // Не авторизован - показываем кнопку входа
         document.getElementById('login-section').style.display = 'flex';
         if (google?.accounts?.id) {
             google.accounts.id.initialize({ 
