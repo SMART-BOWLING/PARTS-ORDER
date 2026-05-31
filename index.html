@@ -18,7 +18,7 @@ button{background:#1e2f3f;color:white;font-weight:600;border:none;cursor:pointer
 button:active{transform:scale(0.98);}
 button:disabled{opacity:0.6;transform:none;}
 .save-btn{background:#1e2f3f;margin-top:8px;}
-.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;}
+.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;transition:opacity 0.3s;}
 .order-table{width:100%;border-collapse:collapse;}
 .order-table tr{border-bottom:1px solid #f0f2f5;}
 .order-table tr:last-child{border-bottom:none;}
@@ -51,9 +51,10 @@ button:disabled{opacity:0.6;transform:none;}
 .filter-btn:not(.active){background:#e2e8f0;color:#475569;}
 .filter-btn:not(.active):hover{background:#cbd5e1;}
 .reset-filter-btn{background:#6c7a8e;color:white;padding:10px 20px;border-radius:40px;font-size:14px;cursor:pointer;border:none;margin-left:auto;}
-.stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;}
+.stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;flex-wrap:wrap;gap:10px;}
 .stats-bar span{font-weight:600;color:#1e2f3f;}
 .search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
+.manual-refresh-btn{background:#4a5b6e;color:white;padding:10px 20px;border-radius:40px;font-size:14px;cursor:pointer;border:none;margin-left:10px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -73,7 +74,10 @@ button:disabled{opacity:0.6;transform:none;}
             <img id="user-pic" src="">
             <div><div id="user-name" style="font-weight:600;"></div><div id="user-email" style="font-size:12px;color:#5b6b82;"></div></div>
         </div>
-        <button id="logout-btn" onclick="signOut()">Выйти</button>
+        <div style="display:flex; gap:10px;">
+            <button class="manual-refresh-btn" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Обновить</button>
+            <button id="logout-btn" onclick="signOut()">Выйти</button>
+        </div>
     </div>
     <div id="main-content" style="display:none;">
         <div class="form-card">
@@ -119,6 +123,7 @@ button:disabled{opacity:0.6;transform:none;}
             <span>📊 Всего заказов: <span id="totalCount">0</span></span>
             <span>🟠 Активных: <span id="activeCount">0</span></span>
             <span>✅ Доставленных: <span id="deliveredCount">0</span></span>
+            <span id="loadingIndicator" style="color:#1e2f3f; display:none;"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</span>
         </div>
         
         <div id="ordersList"></div>
@@ -127,7 +132,7 @@ button:disabled{opacity:0.6;transform:none;}
 
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQVGcQ9XvB29fiDE0j_byFxHhdK-6vV92V3B-u7tHSeQq68d3mrvF_Zol7uyEtQ0WbQw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0RzP7Pp_XQ5h3KibStxSuZ55QnS9s-QvsTST_gQiaQYGSvLQYnpuKcI35XRcvbsxwYg/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -140,6 +145,7 @@ let currentStatusFilter = 'active';
 let currentClubFilter = 'all';
 let currentPartFilter = 'all';
 let currentSearchQuery = '';
+let isLoading = false;
 
 // Функция для форматирования даты
 function formatDateTime(date) {
@@ -223,6 +229,7 @@ function applyFilters() {
     } else if (currentStatusFilter === 'delivered') {
         filteredOrders = filteredOrders.filter(order => order.status === 'Доставлено');
     }
+    // 'all' - показываем все
     
     // Фильтр по клубу
     if (currentClubFilter !== 'all') {
@@ -242,9 +249,6 @@ function applyFilters() {
         );
     }
     
-    // Обновляем статистику
-    updateStats();
-    
     // Рендерим отфильтрованные заказы
     renderOrders(filteredOrders);
 }
@@ -260,6 +264,13 @@ function resetFilters() {
 }
 
 function updateStats() {
+    if (!allOrders.length) {
+        document.getElementById('totalCount').textContent = '0';
+        document.getElementById('activeCount').textContent = '0';
+        document.getElementById('deliveredCount').textContent = '0';
+        return;
+    }
+    
     const total = allOrders.length;
     const active = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '').length;
     const delivered = allOrders.filter(order => order.status === 'Доставлено').length;
@@ -273,17 +284,28 @@ function updatePartNumberFilter() {
     const partNumbers = [...new Set(allOrders.map(order => order.partNumber).filter(p => p))];
     const filterSelect = document.getElementById('partNumberFilter');
     
+    if (!filterSelect) return;
+    
     filterSelect.innerHTML = '<option value="all">🔧 Все детали</option>';
     partNumbers.forEach(part => {
         filterSelect.innerHTML += `<option value="${escapeHtml(part)}">🔧 ${escapeHtml(part)}</option>`;
     });
 }
 
-async function loadOrders() {
-    const container = document.getElementById('ordersList');
-    if (!container) return;
+async function loadOrders(showLoading = true) {
+    if (isLoading) return;
+    isLoading = true;
     
-    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+    const container = document.getElementById('ordersList');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    if (showLoading && loadingIndicator) {
+        loadingIndicator.style.display = 'inline-block';
+    }
+    
+    if (container && showLoading) {
+        container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+    }
     
     try {
         const orders = await callScriptAsync('getOrders');
@@ -301,12 +323,33 @@ async function loadOrders() {
         // Применяем текущие фильтры
         applyFilters();
         
+        if (allOrders.length === 0 && container) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
+        }
+        
+        showToast(`✅ Загружено ${allOrders.length} заказов`);
+        
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
+        if (container) {
+            container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br>
+            <button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px;">
+            <i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
+        }
+        showToast(`❌ Ошибка загрузки: ${err.message}`, true);
         return [];
+    } finally {
+        isLoading = false;
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'none';
+        }
     }
+}
+
+// Функция для принудительного обновления
+async function manualRefresh() {
+    await loadOrders(true);
 }
 
 async function saveOrder() {
@@ -342,8 +385,8 @@ async function saveOrder() {
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        // Перезагружаем заказы
-        await loadOrders();
+        // Принудительно перезагружаем заказы
+        await loadOrders(true);
         
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
@@ -592,7 +635,7 @@ async function checkEmailAndSiteInSheet(email) {
     }
 }
 
-function loginUser(user) {
+async function loginUser(user) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('user-info').style.display = 'flex';
     document.getElementById('main-content').style.display = 'block';
@@ -605,7 +648,8 @@ function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    loadOrders();
+    // Принудительно загружаем заказы
+    await loadOrders(true);
 }
 
 function parseJwt(token) {
@@ -634,6 +678,7 @@ window.loadOrders = loadOrders;
 window.setStatusFilter = setStatusFilter;
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
+window.manualRefresh = manualRefresh;
 
 // Инициализация при загрузке
 window.addEventListener('load', async () => {
@@ -672,14 +717,17 @@ window.addEventListener('load', async () => {
             }
             
             if (hasAccess) {
-                await loadOrders();
+                // Показываем индикатор загрузки
+                document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+                // Принудительно загружаем заказы
+                await loadOrders(true);
             } else {
                 showToast('❌ Нет доступа к таблице', true);
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state">⛔ Нет доступа к таблице</div>';
             }
         } catch(err) {
             console.error('Ошибка инициализации:', err);
-            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Перезагрузить</button></div>`;
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         }
     } else {
         document.getElementById('login-section').style.display = 'flex';
