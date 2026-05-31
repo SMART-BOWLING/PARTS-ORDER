@@ -90,9 +90,10 @@ button:disabled{opacity:0.6;transform:none;}
         <div id="ordersList"></div>
     </div>
 </div>
+
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5MTxrTxlsDL5R1EJDiqsqDbrffwhRr-NbUWOg_14NpIsQPwggq6p5OOHrTcLXuZ_uxw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQVGcQ9XvB29fiDE0j_byFxHhdK-6vV92V3B-u7tHSeQq68d3mrvF_Zol7uyEtQ0WbQw/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -102,7 +103,20 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let currentFilter = 'active';
-let gapiInitialized = false;
+
+// Функция для форматирования даты: ДД.ММ.ГГГГ, ЧЧ:ММ:СС
+function formatDateTime(date) {
+    if (!date || !(date instanceof Date) || isNaN(date)) return '—';
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
+}
 
 function showToast(msg, isError) {
     const toast = document.createElement('div');
@@ -153,14 +167,6 @@ function showDeliveredOrders() {
 }
 
 function renderFilteredOrders() {
-    if (!allOrders || allOrders.length === 0) {
-        const container = document.getElementById('ordersList');
-        if (container) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</div>';
-        }
-        return;
-    }
-    
     let filteredOrders = [];
     if (currentFilter === 'active') {
         filteredOrders = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
@@ -177,42 +183,45 @@ async function loadOrders() {
     container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
-        
         if (orders && orders.error) throw new Error(orders.error);
-        
-        if (Array.isArray(orders)) {
-            allOrders = orders;
-        } else {
-            allOrders = [];
-        }
-        
+        allOrders = Array.isArray(orders) ? orders : [];
         renderFilteredOrders();
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="retryLoadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
+        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         return [];
     }
-}
-
-function retryLoadOrders() {
-    loadOrders();
 }
 
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
     const partNumber = document.getElementById('partNumber').value.trim();
     const quantity = parseInt(document.getElementById('quantity').value);
+    
     if (!club) { showToast('❌ Выберите клуб', true); return; }
     if (!partNumber) { showToast('❌ Введите номер детали', true); return; }
     if (isNaN(quantity) || quantity <= 0) { showToast('❌ Корректное количество', true); return; }
+    
     const btn = document.getElementById('saveOrderBtn');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Сохранение...';
     btn.disabled = true;
+    
     try {
-        const result = await callScriptAsync('addOrder', { partNumber, quantity, club });
+        // Получаем текущую дату и время на момент создания заказа
+        const now = new Date();
+        const formattedDateTime = formatDateTime(now);
+        
+        const result = await callScriptAsync('addOrder', { 
+            partNumber, 
+            quantity, 
+            club,
+            timestamp: now.toISOString() // передаём ISO строку для хранения
+        });
+        
         if (result && result.error) throw new Error(result.error);
+        
         showToast(`✅ Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
@@ -246,21 +255,23 @@ async function updateStatus(row, newStatus, selectElement) {
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
-        if (selectElement) {
-            selectElement.value = originalValue;
+        selectElement.value = originalValue;
+        selectElement.classList.remove('status-pending', 'status-delivered');
+        if (originalValue === 'Активно') {
+            selectElement.classList.add('status-pending');
+        } else {
+            selectElement.classList.add('status-delivered');
         }
     } finally {
-        if (selectElement) {
-            selectElement.disabled = false;
-            selectElement.style.opacity = '1';
-        }
+        selectElement.disabled = false;
+        selectElement.style.opacity = '1';
     }
 }
 
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
     
-    const card = cardElement;
+    const card = cardElement.closest('.card');
     if (card) {
         card.style.opacity = '0.5';
         card.style.pointerEvents = 'none';
@@ -302,7 +313,17 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
-        const dateStr = order.timestamp && order.timestamp !== '—' ? order.timestamp : 'Дата не указана';
+        // Форматируем дату из сохранённого timestamp
+        let dateStr = '—';
+        if (order.timestamp) {
+            try {
+                const date = new Date(order.timestamp);
+                dateStr = formatDateTime(date);
+            } catch(e) {
+                dateStr = '—';
+            }
+        }
+        
         const table = document.createElement('table'); 
         table.className = 'order-table';
         
@@ -312,7 +333,7 @@ function renderOrders(orders) {
             { label: 'Номер детали', value: order.partNumber || '—' },
             { label: 'Количество', value: `${order.quantity} шт.` },
             { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата заказа', value: dateStr }
+            { label: 'Дата и время заказа', value: dateStr }
         ];
         
         rows.forEach(r => {
@@ -374,22 +395,7 @@ function escapeHtml(str) {
 // ========== АВТОРИЗАЦИЯ ==========
 function loadSheetsAPI() { 
     return new Promise((resolve, reject) => { 
-        if (gapiInitialized) {
-            resolve();
-            return;
-        }
-        gapi.load('client', async () => {
-            try {
-                await gapi.client.init({ 
-                    apiKey: AUTH_API_KEY, 
-                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] 
-                });
-                gapiInitialized = true;
-                resolve();
-            } catch(err) {
-                reject(err);
-            }
-        });
+        gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); 
     }); 
 }
 
@@ -423,6 +429,7 @@ function showLoadingAuth(show) {
 async function initAndCheckEmail() {
     try {
         await loadSheetsAPI();
+        await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
         await checkEmailAndSiteInSheet(currentUser.email);
     } catch(err) { 
         showLoadingAuth(false); 
@@ -491,12 +498,60 @@ function signOut() {
     location.reload(); 
 }
 
-// === Восстановление сессии с корректной инициализацией API ===
-async function restoreSession() {
+window.saveOrder = saveOrder;
+window.updateStatus = updateStatus;
+window.deleteOrder = deleteOrder;
+window.signOut = signOut;
+window.handleCredentialResponse = handleCredentialResponse;
+window.loadOrders = loadOrders;
+window.showActiveOrders = showActiveOrders;
+window.showDeliveredOrders = showDeliveredOrders;
+
+window.addEventListener('load', async () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
     
-    if (!logged || !savedEmail) {
+    if (logged && savedEmail) {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('user-info').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
+        document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
+        document.getElementById('user-email').innerText = savedEmail;
+        
+        currentUser = { 
+            email: savedEmail, 
+            name: localStorage.getItem('userName'), 
+            picture: localStorage.getItem('userPic') 
+        };
+        
+        try {
+            await loadSheetsAPI();
+            await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+            
+            const resp = await gapi.client.sheets.spreadsheets.values.get({ 
+                spreadsheetId: AUTH_SPREADSHEET_ID, 
+                range: `${AUTH_SHEET_NAME}!A:C` 
+            });
+            const rows = resp.result.values || [];
+            let hasAccess = false;
+            for (let row of rows) {
+                if (row[0] && row[0].toLowerCase().trim() === savedEmail.toLowerCase().trim()) { 
+                    hasAccess = true; 
+                    break; 
+                }
+            }
+            
+            if (hasAccess) {
+                await loadOrders();
+            } else {
+                showToast('❌ Нет доступа к таблице', true);
+            }
+        } catch(err) {
+            console.error('Ошибка инициализации:', err);
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Загрузить заказы</button></div>`;
+        }
+    } else {
         document.getElementById('login-section').style.display = 'flex';
         if (google?.accounts?.id) {
             google.accounts.id.initialize({ 
@@ -507,77 +562,7 @@ async function restoreSession() {
                 type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' 
             });
         }
-        return false;
     }
-    
-    // Показываем UI сразу, но заказы загрузятся после проверки
-    document.getElementById('login-section').style.display = 'none';
-    document.getElementById('user-info').style.display = 'flex';
-    document.getElementById('main-content').style.display = 'block';
-    document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
-    document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
-    document.getElementById('user-email').innerText = savedEmail;
-    
-    currentUser = { 
-        email: savedEmail, 
-        name: localStorage.getItem('userName'), 
-        picture: localStorage.getItem('userPic') 
-    };
-    
-    // Отображаем заглушку в ordersList на время проверки
-    const ordersContainer = document.getElementById('ordersList');
-    if (ordersContainer) {
-        ordersContainer.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Проверка доступа...</div>';
-    }
-    
-    try {
-        await loadSheetsAPI();
-        
-        const resp = await gapi.client.sheets.spreadsheets.values.get({ 
-            spreadsheetId: AUTH_SPREADSHEET_ID, 
-            range: `${AUTH_SHEET_NAME}!A:C` 
-        });
-        const rows = resp.result.values || [];
-        let hasAccess = false;
-        for (let row of rows) {
-            if (row[0] && row[0].toLowerCase().trim() === savedEmail.toLowerCase().trim()) { 
-                hasAccess = true; 
-                break; 
-            }
-        }
-        
-        if (hasAccess) {
-            await loadOrders();
-            return true;
-        } else {
-            showToast('❌ Нет доступа к таблице', true);
-            if (ordersContainer) {
-                ordersContainer.innerHTML = '<div class="empty-state">❌ Ваш email не авторизован для работы с таблицей.</div>';
-            }
-            return false;
-        }
-    } catch(err) {
-        console.error('Ошибка восстановления сессии:', err);
-        if (ordersContainer) {
-            ordersContainer.innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${escapeHtml(err.message)}<br><br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Перезагрузить</button></div>`;
-        }
-        return false;
-    }
-}
-
-// Глобальные функции для вызова из HTML
-window.saveOrder = saveOrder;
-window.updateStatus = updateStatus;
-window.deleteOrder = deleteOrder;
-window.signOut = signOut;
-window.handleCredentialResponse = handleCredentialResponse;
-window.loadOrders = loadOrders;
-window.showActiveOrders = showActiveOrders;
-window.showDeliveredOrders = showDeliveredOrders;
-window.retryLoadOrders = retryLoadOrders;
-
-window.addEventListener('load', () => {
-    restoreSession();
 });
 </script>
 </body>
