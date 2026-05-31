@@ -50,6 +50,11 @@ button:disabled{opacity:0.6;transform:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1a2f40;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* Контейнер для фильтров и поиска: изначально скрыт, показываем только после загрузки заказов */
+.filter-search-container {
+    display: none;
+    transition: all 0.2s ease;
+}
 .filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
 .filter-group{flex:1;min-width:150px;}
 .filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;border-color:#e2e8f0;}
@@ -96,25 +101,27 @@ button:disabled{opacity:0.6;transform:none;}
             </div>
         </div>
         
-        <div class="filter-section">
-            <div class="filter-group">
-                <select id="statusFilter">
-                    <option value="all">Все заказы</option>
-                    <option value="active">Активные</option>
-                    <option value="delivered">Доставленные</option>
-                </select>
+        <!-- Блок фильтров и поиска: видим только после появления списка деталей (после загрузки заказов) -->
+        <div id="filterSearchBlock" class="filter-search-container">
+            <div class="filter-section">
+                <div class="filter-group">
+                    <select id="statusFilter">
+                        <option value="all">Все заказы</option>
+                        <option value="active">Активные</option>
+                        <option value="delivered">Доставленные</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="clubFilter">
+                        <option value="all">Все клубы</option>
+                        <option value="BLOCKBUSTER">BLOCKBUSTER</option>
+                        <option value="SKYMALL">SKYMALL</option>
+                        <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
+                    </select>
+                </div>
             </div>
-            <div class="filter-group">
-                <select id="clubFilter">
-                    <option value="all">Все клубы</option>
-                    <option value="BLOCKBUSTER">BLOCKBUSTER</option>
-                    <option value="SKYMALL">SKYMALL</option>
-                    <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
-                </select>
-            </div>
+            <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу" onkeyup="applyFilters()">
         </div>
-        
-        <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали" onkeyup="applyFilters()">
         
         <div id="ordersList"></div>
     </div>
@@ -130,8 +137,9 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
+let isFirstLoadCompleted = false;  // флаг: загрузились ли заказы хотя бы раз (чтобы показать фильтры)
 
-// Функция форматирования даты и времени
+// Форматирование даты
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -143,36 +151,22 @@ function formatDateTime(date) {
     return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
 }
 
-// Функция для безопасного парсинга даты из разных форматов
 function parseTimestamp(timestamp) {
     if (!timestamp) return null;
-    
-    // Если это уже объект Date, возвращаем его
     if (timestamp instanceof Date) return timestamp;
-    
-    // Пробуем разные варианты
-    let date = null;
-    
-    // 1. Пробуем ISO строку
     if (typeof timestamp === 'string') {
-        date = new Date(timestamp);
+        let date = new Date(timestamp);
         if (!isNaN(date)) return date;
-        
-        // 2. Пробуем формат из Google Sheets (серийный номер)
         if (!isNaN(parseFloat(timestamp))) {
             const serial = parseFloat(timestamp);
-            // Excel/Google Sheets serial date (дни с 30.12.1899)
             const dateFromSerial = new Date((serial - 25569) * 86400000);
             if (!isNaN(dateFromSerial)) return dateFromSerial;
         }
     }
-    
-    // 3. Если это число (миллисекунды)
     if (typeof timestamp === 'number') {
-        date = new Date(timestamp);
+        let date = new Date(timestamp);
         if (!isNaN(date)) return date;
     }
-    
     return null;
 }
 
@@ -209,7 +203,9 @@ function callScriptAsync(functionName, data) {
     });
 }
 
+// Применяем фильтры и показываем заказы
 function applyFilters() {
+    // Фильтры применяются только если есть заказы, но они могут быть пустыми, всё равно рендерим пустой список
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
@@ -228,12 +224,11 @@ function applyFilters() {
     
     if (searchQuery) {
         filteredOrders = filteredOrders.filter(order => 
-            order.partNumber.toLowerCase().includes(searchQuery) ||
-            order.club.toLowerCase().includes(searchQuery)
+            (order.partNumber && order.partNumber.toLowerCase().includes(searchQuery)) ||
+            (order.club && order.club.toLowerCase().includes(searchQuery))
         );
     }
     
-    // Сортировка: сначала новые (по дате, самые свежие сверху)
     filteredOrders.sort((a, b) => {
         const dateA = a.timestampObj || (a.timestamp ? parseTimestamp(a.timestamp) : 0);
         const dateB = b.timestampObj || (b.timestamp ? parseTimestamp(b.timestamp) : 0);
@@ -245,11 +240,16 @@ function applyFilters() {
     renderOrders(filteredOrders);
 }
 
+// Основная загрузка заказов: после успешной загрузки показываем фильтры и поиск
 async function loadOrders(showLoading = true, highlightNewId = null) {
     if (isLoading) return;
     isLoading = true;
     
     const container = document.getElementById('ordersList');
+    const filterBlock = document.getElementById('filterSearchBlock');
+    
+    // Скрываем блок фильтров, пока данные не загрузятся (гарантия, что они появятся только после списка)
+    if (filterBlock) filterBlock.style.display = 'none';
     
     if (container && showLoading) {
         container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
@@ -260,7 +260,6 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
         
-        // Обрабатываем timestamp для каждого заказа, создавая объект Date
         allOrders.forEach(order => {
             if (order.timestamp) {
                 order.timestampObj = parseTimestamp(order.timestamp);
@@ -269,14 +268,20 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
             }
         });
         
-        // Сортируем все заказы при загрузке
         allOrders.sort((a, b) => {
             const timeA = a.timestampObj instanceof Date ? a.timestampObj.getTime() : 0;
             const timeB = b.timestampObj instanceof Date ? b.timestampObj.getTime() : 0;
             return timeB - timeA;
         });
         
+        // Применяем фильтры (рендер)
         applyFilters();
+        
+        // КЛЮЧЕВОЙ МОМЕНТ: после успешного получения списка заказов (даже если он пуст) ПОКАЗЫВАЕМ фильтры и поиск
+        if (filterBlock) {
+            filterBlock.style.display = 'block';
+        }
+        isFirstLoadCompleted = true;
         
         if (highlightNewId) {
             setTimeout(() => {
@@ -292,7 +297,7 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
         if (allOrders.length === 0 && container) {
             container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
         }
-        showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов (новые сверху)`);
+        showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов`);
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
@@ -301,6 +306,8 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
             <button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px; background:#1a2f40; color:white; border:none; border-radius:40px;">
             <i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         }
+        // При ошибке тоже не показываем фильтры (чтобы пользователь не кликал по пустоте)
+        if (filterBlock) filterBlock.style.display = 'none';
         showToast(`<i class="fas fa-times-circle"></i> Ошибка загрузки: ${err.message}`, true);
         return [];
     } finally {
@@ -328,7 +335,6 @@ async function saveOrder() {
     
     try {
         const now = new Date();
-        // Отправляем ISO строку с полной датой и временем
         const result = await callScriptAsync('addOrder', { 
             partNumber, 
             quantity, 
@@ -339,8 +345,6 @@ async function saveOrder() {
         if (result && result.error) throw new Error(result.error);
         
         const newRowId = result && result.row ? result.row : (result && result.id ? result.id : null);
-        
-        // Форматируем текущее время для уведомления
         const timeStr = formatDateTime(now);
         showToast(`<i class="fas fa-check-circle"></i> Заказ для ${club}: ${partNumber} (${quantity} шт.)<br>Время: ${timeStr}`);
         
@@ -348,6 +352,7 @@ async function saveOrder() {
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
+        // Обновляем заказы (после обновления фильтры покажутся автоматически, так как loadOrders вызовет отображение)
         await loadOrders(true, newRowId);
         
     } catch(err) {
@@ -360,7 +365,6 @@ async function saveOrder() {
 
 async function updateStatus(row, newStatus, selectElement) {
     if (!selectElement) return;
-    
     const originalValue = selectElement.value;
     selectElement.disabled = true;
     selectElement.style.opacity = '0.6';
@@ -373,9 +377,7 @@ async function updateStatus(row, newStatus, selectElement) {
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
-        
         applyFilters();
-        
         showToast(`<i class="fas fa-check-circle"></i> Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
@@ -388,24 +390,19 @@ async function updateStatus(row, newStatus, selectElement) {
 
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
-    
     const card = cardElement.closest('.card');
     if (card) {
         card.style.opacity = '0.5';
         card.style.pointerEvents = 'none';
     }
-    
     try {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
-        
         const orderIndex = allOrders.findIndex(order => order.row == row);
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
-        
         applyFilters();
-        
         showToast('<i class="fas fa-trash-alt"></i> Заказ удалён');
     } catch(err) {
         showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
@@ -421,12 +418,11 @@ function renderOrders(orders) {
     if (!container) return;
     
     if (!orders || orders.length === 0) {
-        const statusFilter = document.getElementById('statusFilter').value;
+        const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : 'all';
         let message = '';
         if (statusFilter === 'active') message = 'Нет активных заказов';
         else if (statusFilter === 'delivered') message = 'Нет доставленных заказов';
         else message = 'Нет заказов';
-        
         container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> ${message}.</div>`;
         return;
     }
@@ -437,23 +433,16 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
-        // Получаем строку даты из timestamp
         let dateStr = '—';
-        let timeStr = '';
         if (order.timestamp) {
             const date = parseTimestamp(order.timestamp);
             if (date && date instanceof Date && !isNaN(date)) {
                 dateStr = formatDateTime(date);
-                // Для отображения также отдельно времени
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                timeStr = `${hours}:${minutes}`;
             }
         }
         
         const table = document.createElement('table'); 
         table.className = 'order-table';
-        
         const currentStatus = order.status || 'Активно';
         
         const rows = [
@@ -605,6 +594,7 @@ async function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
+    // Загружаем заказы (именно здесь после загрузки появятся фильтры)
     await loadOrders(true);
 }
 
