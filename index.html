@@ -45,36 +45,46 @@ button:disabled{opacity:0.6;transform:none;}
 .user-details{display:flex;align-items:center;gap:12px;}
 #user-pic{width:42px;height:42px;border-radius:50%;object-fit:cover;}
 #logout-btn{width:auto;background:#f4f6fa;color:#1a2f40;padding:8px 18px;border-radius:40px;margin:0; border:1px solid #e2e8f0;}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2f40;color:white;padding:10px 24px;border-radius:60px;font-size:14px;z-index:1000;animation:fadeUp 0.25s ease; box-shadow:0 4px 12px rgba(0,0,0,0.1);}
-.toast.error{background:#dc143c;}
-@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+
+/* НОВЫЙ СТИЛЬ ДЛЯ TOAST — БЕЗ ЗАКРУГЛЕНИЙ, УВЕЛИЧЕННЫЙ ПРЯМОУГОЛЬНИК */
+.toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#1a2f40;
+    color:white;
+    padding:16px 32px;          /* Увеличенные отступы -> больше прямоугольник */
+    font-size:15px;
+    font-weight:500;
+    z-index:1000;
+    animation:fadeUp 0.25s ease;
+    box-shadow:0 8px 20px rgba(0,0,0,0.2);
+    border-radius:0px !important;   /* Убираем закругления полностью */
+    text-align:center;
+    min-width:260px;
+    max-width:90vw;
+    line-height:1.4;
+    letter-spacing:0.3px;
+}
+.toast.error{
+    background:#dc143c;
+}
+@keyframes fadeUp{
+    from{opacity:0;transform:translateX(-50%) translateY(20px);}
+    to{opacity:1;transform:translateX(-50%) translateY(0);}
+}
+
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1a2f40;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-
-/* Обновлённый блок фильтров и поиска: убраны закругления подложки, увеличен отступ и внутренние поля */
 .filter-search-container {
     display: none;
     transition: all 0.2s ease;
-    background: #f8fafd;       /* лёгкий фон чтобы выделить блок, но без закруглений */
-    padding: 20px 18px 22px 18px;  /* увеличен внутренний отступ, чтобы прямоугольник стал визуально больше */
-    margin-bottom: 20px;
-    border: 1px solid #e2edf5;     /* тонкая рамка вместо скруглённой подложки */
-    box-shadow: none;              /* без тени для чёткого прямоугольника */
-    border-radius: 0;              /* УБРАНЫ ЗАКРУГЛЕНИЯ – строго прямоугольный блок */
 }
-
-/* Адаптив для мобильных – сохраняем строгую прямоугольную форму */
-@media (max-width: 560px) {
-    .filter-search-container {
-        padding: 18px 14px 20px 14px;
-    }
-}
-
-.filter-section{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
 .filter-group{flex:1;min-width:150px;}
-.filter-group select{width:100%;padding:12px 14px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;border-color:#cbdde9;}
-.search-box{width:100%;padding:14px 18px;border-radius:30px;border:1px solid #cbdde9;font-size:16px;margin-bottom:0;background:#fff;transition:0.2s;}
-.search-box:focus{border-color:#1a2f40; outline:none; box-shadow:0 0 0 2px rgba(26,47,64,0.1);}
+.filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;border-color:#e2e8f0;}
+.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:16px;margin-bottom:16px;}
 .refresh-btn-under{background:#1a2f40;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
 .refresh-btn-under:hover{background:#0f1e2a;}
 .button-group{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
@@ -117,7 +127,7 @@ button:disabled{opacity:0.6;transform:none;}
             </div>
         </div>
         
-        <!-- Область уведомлений (фильтры/поиск) – теперь без закруглений, увеличенный прямоугольник -->
+        <!-- Блок фильтров и поиска: видим только после появления списка деталей (после загрузки заказов) -->
         <div id="filterSearchBlock" class="filter-search-container">
             <div class="filter-section">
                 <div class="filter-group">
@@ -153,8 +163,9 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
-let isFirstLoadCompleted = false;
+let isFirstLoadCompleted = false;  // флаг: загрузились ли заказы хотя бы раз (чтобы показать фильтры)
 
+// Форматирование даты
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -185,12 +196,13 @@ function parseTimestamp(timestamp) {
     return null;
 }
 
+// --- Обновлённый showToast с увеличенным прямоугольником и без закруглений (border-radius:0) ---
 function showToast(msgHtml, isError = false) {
     const toast = document.createElement('div');
     toast.className = 'toast' + (isError ? ' error' : '');
     toast.innerHTML = msgHtml;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 2800);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 function callScriptAsync(functionName, data) {
@@ -218,6 +230,7 @@ function callScriptAsync(functionName, data) {
     });
 }
 
+// Применяем фильтры и показываем заказы
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
@@ -253,6 +266,7 @@ function applyFilters() {
     renderOrders(filteredOrders);
 }
 
+// Основная загрузка заказов: после успешной загрузки показываем фильтры и поиск
 async function loadOrders(showLoading = true, highlightNewId = null) {
     if (isLoading) return;
     isLoading = true;
