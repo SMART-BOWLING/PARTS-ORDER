@@ -83,16 +83,16 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfkqhvxa-jQl96hfzp0eE7LsXkM0TG0Uevp9v_MoRTbMDG0qLE-1cyenuRPpQW398r7g/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE4IJpk--h--ISFlVksqcgm9gXINvFQ9fWrdjrKtN0JBHX9gHUtboVwBi2nDl6bUlhgg/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
 const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
-const CURRENT_SITE = window.location.href.split('?')[0];
 
 let currentUser = null;
 let currentUserNameFromSheet = null;
-let allOrders = []; // Храним все заказы для быстрого обновления
+let allOrders = [];
+let isInitialized = false;
 
 function showToast(msg, isError) {
     const toast = document.createElement('div');
@@ -130,15 +130,20 @@ function callScriptAsync(functionName, data) {
 
 async function loadOrders() {
     const container = document.getElementById('ordersList');
-    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка...</div>';
+    if (!container) return;
+    
+    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
+        console.log('Загружено заказов:', allOrders.length); // Для отладки
         renderOrders(allOrders);
+        return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
         container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;">Повторить</button></div>`;
+        return [];
     }
 }
 
@@ -160,7 +165,7 @@ async function saveOrder() {
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
-        await loadOrders(); // Асинхронно обновляем список
+        await loadOrders();
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
     } finally {
@@ -170,8 +175,9 @@ async function saveOrder() {
 }
 
 async function updateStatus(row, newStatus, selectElement) {
-    // Блокируем select на время обновления
-    const originalText = selectElement.innerHTML;
+    if (!selectElement) return;
+    
+    const originalValue = selectElement.value;
     selectElement.disabled = true;
     selectElement.style.opacity = '0.6';
     
@@ -179,20 +185,22 @@ async function updateStatus(row, newStatus, selectElement) {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
         
-        // Обновляем статус в локальном массиве
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
         
-        // Асинхронно обновляем интерфейс без перезагрузки всей страницы
         updateOrderStatusInDOM(row, newStatus);
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
-        // Возвращаем предыдущее значение в случае ошибки
-        const previousStatus = newStatus === 'Активно' ? 'Доставлено' : 'Активно';
-        selectElement.value = previousStatus;
+        selectElement.value = originalValue;
+        selectElement.classList.remove('status-pending', 'status-delivered');
+        if (originalValue === 'Активно') {
+            selectElement.classList.add('status-pending');
+        } else {
+            selectElement.classList.add('status-delivered');
+        }
     } finally {
         selectElement.disabled = false;
         selectElement.style.opacity = '1';
@@ -202,7 +210,6 @@ async function updateStatus(row, newStatus, selectElement) {
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
     
-    // Визуально удаляем карточку сразу для лучшего UX
     const card = cardElement.closest('.card');
     if (card) {
         card.style.opacity = '0.5';
@@ -213,18 +220,15 @@ async function deleteOrder(row, cardElement) {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
         
-        // Удаляем заказ из локального массива
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
         
-        // Асинхронно удаляем карточку из DOM
         if (card) {
             card.remove();
         }
         
-        // Проверяем, остались ли заказы
         if (allOrders.length === 0) {
             document.getElementById('ordersList').innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Добавьте первую позицию.</div>';
         }
@@ -240,13 +244,11 @@ async function deleteOrder(row, cardElement) {
 }
 
 function updateOrderStatusInDOM(row, newStatus) {
-    // Находим select элемент для этого заказа и обновляем его класс
     const selectElements = document.querySelectorAll('.status-select');
     for (let select of selectElements) {
         const onchangeAttr = select.getAttribute('onchange');
         if (onchangeAttr && onchangeAttr.includes(`updateStatus(${row}`)) {
             select.value = newStatus;
-            // Обновляем класс для стилизации
             select.classList.remove('status-pending', 'status-delivered');
             if (newStatus === 'Активно') {
                 select.classList.add('status-pending');
@@ -260,6 +262,8 @@ function updateOrderStatusInDOM(row, newStatus) {
 
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
+    if (!container) return;
+    
     if (!orders.length) {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Добавьте первую позицию.</div>';
         return;
@@ -294,7 +298,6 @@ function renderOrders(orders) {
             table.appendChild(tr);
         });
         
-        // Добавляем строку статуса с select
         const statusTr = document.createElement('tr');
         const statusTdL = document.createElement('td');
         statusTdL.textContent = 'Статус';
@@ -421,10 +424,13 @@ function loginUser(user) {
     document.getElementById('user-pic').src = user.picture;
     document.getElementById('user-name').innerText = currentUserNameFromSheet || user.name;
     document.getElementById('user-email').innerText = user.email;
+    
     localStorage.setItem('userLoggedIn', 'true');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
+    
+    // Важно: Загружаем заказы ПОСЛЕ того, как показали интерфейс
     loadOrders();
 }
 
@@ -444,7 +450,7 @@ function signOut() {
     location.reload(); 
 }
 
-// Глобальные функции для вызова из onclick
+// Глобальные функции
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
@@ -452,31 +458,62 @@ window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
 
-window.addEventListener('load', () => {
+// Инициализация при загрузке страницы
+window.addEventListener('load', async () => {
+    console.log('Страница загружена, проверяем авторизацию...');
+    
     const logged = localStorage.getItem('userLoggedIn') === 'true';
-    if (logged && localStorage.getItem('userEmail')) {
+    const savedEmail = localStorage.getItem('userEmail');
+    
+    if (logged && savedEmail) {
+        console.log('Найдены сохранённые данные пользователя:', savedEmail);
+        
+        // Показываем интерфейс сразу
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('user-info').style.display = 'flex';
         document.getElementById('main-content').style.display = 'block';
         document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
         document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
-        document.getElementById('user-email').innerText = localStorage.getItem('userEmail');
+        document.getElementById('user-email').innerText = savedEmail;
+        
         currentUser = { 
-            email: localStorage.getItem('userEmail'), 
+            email: savedEmail, 
             name: localStorage.getItem('userName'), 
             picture: localStorage.getItem('userPic') 
         };
         
-        // Инициализация API и загрузка заказов при загрузке страницы
-        loadSheetsAPI()
-            .then(() => gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] }))
-            .then(() => checkEmailAndSiteInSheet(currentUser.email))
-            .then(() => loadOrders())
-            .catch((err) => {
-                console.error('Ошибка инициализации:', err);
-                signOut();
+        try {
+            // Инициализируем API и проверяем доступ
+            await loadSheetsAPI();
+            await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+            
+            // Проверяем email в таблице
+            const resp = await gapi.client.sheets.spreadsheets.values.get({ 
+                spreadsheetId: AUTH_SPREADSHEET_ID, 
+                range: `${AUTH_SHEET_NAME}!A:C` 
             });
+            const rows = resp.result.values || [];
+            let hasAccess = false;
+            for (let row of rows) {
+                if (row[0] && row[0].toLowerCase().trim() === savedEmail.toLowerCase().trim()) { 
+                    hasAccess = true; 
+                    break; 
+                }
+            }
+            
+            if (hasAccess) {
+                console.log('Доступ подтверждён, загружаем заказы...');
+                await loadOrders();
+            } else {
+                console.log('Нет доступа, выходим...');
+                signOut();
+            }
+        } catch(err) {
+            console.error('Ошибка инициализации:', err);
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;">Перезагрузить</button></div>`;
+        }
     } else {
+        console.log('Нет сохранённой авторизации, показываем форму входа');
         document.getElementById('login-section').style.display = 'flex';
         if (google?.accounts?.id) {
             google.accounts.id.initialize({ 
