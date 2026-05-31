@@ -9,7 +9,7 @@
 <style>
 *{box-sizing:border-box;}
 body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#f4f6fa;color:#111827;}
-.wrapper{max-width:680px;margin:0 auto;}
+.wrapper{max-width:800px;margin:0 auto;}
 .form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:28px;border:1px solid #eef2f6;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
 .form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#0f172a;display:flex;align-items:center;gap:8px;border-left:4px solid #1e2f3f;padding-left:12px;}
 input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:20px;font-size:15px;background:#fff;}
@@ -42,11 +42,18 @@ button:disabled{opacity:0.6;transform:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1e2f3f;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-group{flex:1;min-width:150px;}
+.filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;}
 .filter-buttons{display:flex;gap:12px;margin-bottom:20px;}
 .filter-btn{flex:1;padding:12px 16px;border-radius:40px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:0.2s;}
 .filter-btn.active{background:#1e2f3f;color:white;}
 .filter-btn:not(.active){background:#e2e8f0;color:#475569;}
 .filter-btn:not(.active):hover{background:#cbd5e1;}
+.reset-filter-btn{background:#6c7a8e;color:white;padding:10px 20px;border-radius:40px;font-size:14px;cursor:pointer;border:none;margin-left:auto;}
+.stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;}
+.stats-bar span{font-weight:600;color:#1e2f3f;}
+.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -82,9 +89,36 @@ button:disabled{opacity:0.6;transform:none;}
             <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
         </div>
         
+        <!-- Расширенная фильтрация -->
+        <div class="filter-section">
+            <div class="filter-group">
+                <select id="clubFilter">
+                    <option value="all">🎳 Все клубы</option>
+                    <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
+                    <option value="SKYMALL">🎳 SKYMALL</option>
+                    <option value="LUCKY STRIKE KH">🎳 LUCKY STRIKE KH</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="partNumberFilter">
+                    <option value="all">🔧 Все детали</option>
+                </select>
+            </div>
+            <button class="reset-filter-btn" onclick="resetFilters()"><i class="fas fa-undo-alt"></i> Сброс</button>
+        </div>
+        
         <div class="filter-buttons">
-            <button id="showActiveBtn" class="filter-btn active" onclick="showActiveOrders()"><i class="fas fa-play-circle"></i> АКТИВНЫЕ</button>
-            <button id="showDeliveredBtn" class="filter-btn" onclick="showDeliveredOrders()"><i class="fas fa-check-circle"></i> ДОСТАВЛЕННЫЕ</button>
+            <button id="showActiveBtn" class="filter-btn active" onclick="setStatusFilter('active')"><i class="fas fa-play-circle"></i> АКТИВНЫЕ</button>
+            <button id="showDeliveredBtn" class="filter-btn" onclick="setStatusFilter('delivered')"><i class="fas fa-check-circle"></i> ДОСТАВЛЕННЫЕ</button>
+            <button id="showAllBtn" class="filter-btn" onclick="setStatusFilter('all')"><i class="fas fa-list"></i> ВСЕ</button>
+        </div>
+        
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по номеру детали или клубу..." onkeyup="applyFilters()">
+        
+        <div class="stats-bar" id="statsBar">
+            <span>📊 Всего заказов: <span id="totalCount">0</span></span>
+            <span>🟠 Активных: <span id="activeCount">0</span></span>
+            <span>✅ Доставленных: <span id="deliveredCount">0</span></span>
         </div>
         
         <div id="ordersList"></div>
@@ -102,9 +136,12 @@ const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
-let currentFilter = 'active';
+let currentStatusFilter = 'active';
+let currentClubFilter = 'all';
+let currentPartFilter = 'all';
+let currentSearchQuery = '';
 
-// Функция для форматирования даты: ДД.ММ.ГГГГ, ЧЧ:ММ:СС
+// Функция для форматирования даты
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     
@@ -152,28 +189,94 @@ function callScriptAsync(functionName, data) {
     });
 }
 
-function showActiveOrders() {
-    currentFilter = 'active';
-    document.getElementById('showActiveBtn').classList.add('active');
-    document.getElementById('showDeliveredBtn').classList.remove('active');
-    renderFilteredOrders();
-}
-
-function showDeliveredOrders() {
-    currentFilter = 'delivered';
+function setStatusFilter(filter) {
+    currentStatusFilter = filter;
+    
+    // Обновляем активные кнопки
     document.getElementById('showActiveBtn').classList.remove('active');
-    document.getElementById('showDeliveredBtn').classList.add('active');
-    renderFilteredOrders();
+    document.getElementById('showDeliveredBtn').classList.remove('active');
+    document.getElementById('showAllBtn').classList.remove('active');
+    
+    if (filter === 'active') {
+        document.getElementById('showActiveBtn').classList.add('active');
+    } else if (filter === 'delivered') {
+        document.getElementById('showDeliveredBtn').classList.add('active');
+    } else {
+        document.getElementById('showAllBtn').classList.add('active');
+    }
+    
+    applyFilters();
 }
 
-function renderFilteredOrders() {
-    let filteredOrders = [];
-    if (currentFilter === 'active') {
-        filteredOrders = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
-    } else {
-        filteredOrders = allOrders.filter(order => order.status === 'Доставлено');
+function applyFilters() {
+    // Получаем значения фильтров
+    currentClubFilter = document.getElementById('clubFilter').value;
+    currentPartFilter = document.getElementById('partNumberFilter').value;
+    currentSearchQuery = document.getElementById('searchInput').value.toLowerCase();
+    
+    // Применяем все фильтры
+    let filteredOrders = [...allOrders];
+    
+    // Фильтр по статусу
+    if (currentStatusFilter === 'active') {
+        filteredOrders = filteredOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
+    } else if (currentStatusFilter === 'delivered') {
+        filteredOrders = filteredOrders.filter(order => order.status === 'Доставлено');
     }
+    
+    // Фильтр по клубу
+    if (currentClubFilter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.club === currentClubFilter);
+    }
+    
+    // Фильтр по номеру детали
+    if (currentPartFilter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.partNumber === currentPartFilter);
+    }
+    
+    // Поиск
+    if (currentSearchQuery) {
+        filteredOrders = filteredOrders.filter(order => 
+            order.partNumber.toLowerCase().includes(currentSearchQuery) ||
+            order.club.toLowerCase().includes(currentSearchQuery)
+        );
+    }
+    
+    // Обновляем статистику
+    updateStats();
+    
+    // Рендерим отфильтрованные заказы
     renderOrders(filteredOrders);
+}
+
+function resetFilters() {
+    document.getElementById('clubFilter').value = 'all';
+    document.getElementById('partNumberFilter').value = 'all';
+    document.getElementById('searchInput').value = '';
+    currentClubFilter = 'all';
+    currentPartFilter = 'all';
+    currentSearchQuery = '';
+    applyFilters();
+}
+
+function updateStats() {
+    const total = allOrders.length;
+    const active = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '').length;
+    const delivered = allOrders.filter(order => order.status === 'Доставлено').length;
+    
+    document.getElementById('totalCount').textContent = total;
+    document.getElementById('activeCount').textContent = active;
+    document.getElementById('deliveredCount').textContent = delivered;
+}
+
+function updatePartNumberFilter() {
+    const partNumbers = [...new Set(allOrders.map(order => order.partNumber).filter(p => p))];
+    const filterSelect = document.getElementById('partNumberFilter');
+    
+    filterSelect.innerHTML = '<option value="all">🔧 Все детали</option>';
+    partNumbers.forEach(part => {
+        filterSelect.innerHTML += `<option value="${escapeHtml(part)}">🔧 ${escapeHtml(part)}</option>`;
+    });
 }
 
 async function loadOrders() {
@@ -181,11 +284,23 @@ async function loadOrders() {
     if (!container) return;
     
     container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+    
     try {
         const orders = await callScriptAsync('getOrders');
+        
         if (orders && orders.error) throw new Error(orders.error);
+        
         allOrders = Array.isArray(orders) ? orders : [];
-        renderFilteredOrders();
+        
+        // Обновляем фильтр номеров деталей
+        updatePartNumberFilter();
+        
+        // Обновляем статистику
+        updateStats();
+        
+        // Применяем текущие фильтры
+        applyFilters();
+        
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
@@ -209,24 +324,27 @@ async function saveOrder() {
     btn.disabled = true;
     
     try {
-        // Получаем текущую дату и время на момент создания заказа
         const now = new Date();
-        const formattedDateTime = formatDateTime(now);
         
         const result = await callScriptAsync('addOrder', { 
             partNumber, 
             quantity, 
             club,
-            timestamp: now.toISOString() // передаём ISO строку для хранения
+            timestamp: now.toISOString()
         });
         
         if (result && result.error) throw new Error(result.error);
         
         showToast(`✅ Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
+        
+        // Очищаем форму
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
+        
+        // Перезагружаем заказы
         await loadOrders();
+        
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
     } finally {
@@ -246,22 +364,22 @@ async function updateStatus(row, newStatus, selectElement) {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
         
+        // Обновляем статус в локальном массиве
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
         
-        renderFilteredOrders();
+        // Обновляем статистику
+        updateStats();
+        
+        // Применяем фильтры заново
+        applyFilters();
+        
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
         selectElement.value = originalValue;
-        selectElement.classList.remove('status-pending', 'status-delivered');
-        if (originalValue === 'Активно') {
-            selectElement.classList.add('status-pending');
-        } else {
-            selectElement.classList.add('status-delivered');
-        }
     } finally {
         selectElement.disabled = false;
         selectElement.style.opacity = '1';
@@ -281,12 +399,17 @@ async function deleteOrder(row, cardElement) {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
         
+        // Удаляем из локального массива
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
         
-        renderFilteredOrders();
+        // Обновляем фильтры и статистику
+        updatePartNumberFilter();
+        updateStats();
+        applyFilters();
+        
         showToast('🗑 Заказ удалён');
     } catch(err) {
         showToast(`Ошибка: ${err.message}`, true);
@@ -302,7 +425,11 @@ function renderOrders(orders) {
     if (!container) return;
     
     if (!orders || orders.length === 0) {
-        const message = currentFilter === 'active' ? 'Нет активных заказов' : 'Нет доставленных заказов';
+        let message = '';
+        if (currentStatusFilter === 'active') message = 'Нет активных заказов';
+        else if (currentStatusFilter === 'delivered') message = 'Нет доставленных заказов';
+        else message = 'Нет заказов';
+        
         container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> ${message}.</div>`;
         return;
     }
@@ -313,7 +440,6 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
-        // Форматируем дату из сохранённого timestamp
         let dateStr = '—';
         if (order.timestamp) {
             try {
@@ -498,15 +624,18 @@ function signOut() {
     location.reload(); 
 }
 
+// Глобальные функции для вызова из HTML
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
-window.showActiveOrders = showActiveOrders;
-window.showDeliveredOrders = showDeliveredOrders;
+window.setStatusFilter = setStatusFilter;
+window.applyFilters = applyFilters;
+window.resetFilters = resetFilters;
 
+// Инициализация при загрузке
 window.addEventListener('load', async () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
@@ -546,10 +675,11 @@ window.addEventListener('load', async () => {
                 await loadOrders();
             } else {
                 showToast('❌ Нет доступа к таблице', true);
+                document.getElementById('ordersList').innerHTML = '<div class="empty-state">⛔ Нет доступа к таблице</div>';
             }
         } catch(err) {
             console.error('Ошибка инициализации:', err);
-            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Загрузить заказы</button></div>`;
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Перезагрузить</button></div>`;
         }
     } else {
         document.getElementById('login-section').style.display = 'flex';
@@ -563,6 +693,17 @@ window.addEventListener('load', async () => {
             });
         }
     }
+});
+
+// Добавляем слушатели для фильтров
+document.addEventListener('DOMContentLoaded', () => {
+    const clubFilter = document.getElementById('clubFilter');
+    const partFilter = document.getElementById('partNumberFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (clubFilter) clubFilter.addEventListener('change', applyFilters);
+    if (partFilter) partFilter.addEventListener('change', applyFilters);
+    if (searchInput) searchInput.addEventListener('keyup', applyFilters);
 });
 </script>
 </body>
