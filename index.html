@@ -463,7 +463,7 @@ body {
                 <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
             </select>
             
-            <!-- Контейнер для динамических строк (part-row) — теперь используется стиль part-row из эталона -->
+            <!-- Контейнер для динамических строк (part-row) -->
             <div id="itemsContainer" class="items-list"></div>
             
             <!-- Кнопка добавления позиции -->
@@ -499,7 +499,7 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
-// ---- Управление динамическими позициями (part-row style) ----
+// ---- Управление динамическими позициями (part-row style) ИСПРАВЛЕНО ----
 let itemCounter = 0;
 let currentItems = []; // { id, partNumber, quantity }
 
@@ -507,7 +507,6 @@ function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
     if (currentItems.length === 0) {
-        // Если нет позиций — показываем подсказку, но по умолчанию будет одна пустая строка при инициализации
         container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px; font-size:14px;">Нет позиций, нажмите "Добавить позицию"</div>';
         return;
     }
@@ -527,45 +526,45 @@ function renderItems() {
         partInput.type = 'text';
         partInput.className = 'part-input';
         partInput.placeholder = '000-000-000';
-        partInput.value = item.partNumber;
+        partInput.value = item.partNumber || '';
         partInput.autocomplete = 'off';
         partInput.addEventListener('input', (e) => { item.partNumber = e.target.value; });
         fieldDiv.appendChild(icon);
         fieldDiv.appendChild(partInput);
         
-     // Поле количества
-const qtyInput = document.createElement('input');
-qtyInput.type = 'number';
-qtyInput.className = 'qty-input';
-qtyInput.placeholder = 'Qty';
-qtyInput.min = 1;
-
-// 🔥 ИЗНАЧАЛЬНО ПУСТОЕ ПОЛЕ
-qtyInput.value = '';
-
-// если у тебя есть item — храним значение отдельно
-item.quantity = null;
-
-qtyInput.addEventListener('input', (e) => {
-    const val = e.target.value;
-
-    // если поле пустое — ничего не принуждаем
-    if (val === '') {
-        item.quantity = null;
-        return;
-    }
-
-    const num = parseInt(val, 10);
-
-    // принимаем только корректные значения >= 1
-    if (!isNaN(num) && num >= 1) {
-        item.quantity = num;
-    } else {
-        // если ввели мусор — очищаем обратно
-        qtyInput.value = '';
-        item.quantity = null;
-    }
-});
+        // Поле количества - ИСПРАВЛЕНО
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.className = 'qty-input';
+        qtyInput.placeholder = 'Qty';
+        qtyInput.min = 1;
+        
+        // ВАЖНО: устанавливаем value из item.quantity, если он есть и > 0
+        // Иначе оставляем пустым
+        if (item.quantity && item.quantity > 0) {
+            qtyInput.value = item.quantity;
+        } else {
+            qtyInput.value = '';
+            // Если quantity не установлен или 0, инициализируем null
+            if (!item.quantity || item.quantity <= 0) {
+                item.quantity = null;
+            }
+        }
+        
+        qtyInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+            if (val === '') {
+                item.quantity = null;
+                return;
+            }
+            const num = parseInt(val, 10);
+            if (!isNaN(num) && num >= 1) {
+                item.quantity = num;
+            } else {
+                qtyInput.value = '';
+                item.quantity = null;
+            }
+        });
         
         // Кнопка удаления (стиль .delete-btn)
         const delBtn = document.createElement('button');
@@ -593,7 +592,7 @@ function addNewItem() {
     currentItems.push({
         id: newId,
         partNumber: '',
-        quantity: 1
+        quantity: null  // ИСПРАВЛЕНО: явно устанавливаем null вместо 1
     });
     renderItems();
 }
@@ -613,7 +612,13 @@ function removeItem(id) {
 function resetItemsToDefault() {
     currentItems = [];
     itemCounter = 0;
-    addNewItem(); // одна пустая строка
+    // Добавляем одну позицию с пустым количеством
+    currentItems.push({
+        id: Date.now() + itemCounter++,
+        partNumber: '',
+        quantity: null
+    });
+    renderItems();
 }
 
 function validateItems() {
@@ -625,7 +630,7 @@ function validateItems() {
     for (let i=0; i<currentItems.length; i++) {
         const it = currentItems[i];
         const partOk = it.partNumber && it.partNumber.trim() !== '';
-        const qtyOk = !isNaN(it.quantity) && it.quantity > 0;
+        const qtyOk = it.quantity !== null && !isNaN(it.quantity) && it.quantity > 0;
         if (partOk && qtyOk) hasValid = true;
         else if (partOk && !qtyOk) { showToast(`Позиция ${i+1}: укажите корректное количество`, true); return false; }
         else if (qtyOk && !partOk) { showToast(`Позиция ${i+1}: введите номер детали`, true); return false; }
@@ -715,7 +720,7 @@ async function saveOrder() {
     if (!validateItems()) return;
     const itemsToSave = [];
     for (const item of currentItems) {
-        if (item.partNumber && item.partNumber.trim() !== '' && (!isNaN(item.quantity) && item.quantity > 0)) {
+        if (item.partNumber && item.partNumber.trim() !== '' && (item.quantity !== null && !isNaN(item.quantity) && item.quantity > 0)) {
             itemsToSave.push({ partNumber: item.partNumber.trim(), quantity: item.quantity });
         }
     }
