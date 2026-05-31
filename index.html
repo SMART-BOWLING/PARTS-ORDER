@@ -92,7 +92,7 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzK3Et7XHCHN_6gQewgrVNAGCy4wGVpqqFlYKiDCWJEem0Il_Opn_UPvATpcAR7BRx8OA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwc7OSRQB8dYApL7mhfhtwiv398xO5SnDWhi050BHTOZ_rZ6-G_Uvp9Og00iM2vWvqP1A/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -268,23 +268,6 @@ async function deleteOrder(row, cardElement) {
     }
 }
 
-function formatDate(dateString) {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return '—';
-        return date.toLocaleString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch(e) {
-        return '—';
-    }
-}
-
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -301,7 +284,7 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
-        const dateStr = formatDate(order.timestamp);
+        const dateStr = order.timestamp || '—';
         const table = document.createElement('table'); 
         table.className = 'order-table';
         
