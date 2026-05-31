@@ -8,7 +8,7 @@
 <script src="https://apis.google.com/js/api.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
-/* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ (как в примере) ----- */
+/* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
 :root {
     --dark: #1f2937;
     --accent: #dc143c;
@@ -28,16 +28,16 @@ body {
     padding: 30px;
 }
 
-/* обёртка контента (сохраняем оригинальные ширины) */
+/* обёртка контента */
 .wrapper {
     max-width: 900px;
     margin: 0 auto;
 }
 
-/* ----- СТИЛИ ДЛЯ КАРТОЧКИ ФОРМЫ, ЗАГОЛОВКИ (как в исходнике) ----- */
+/* ----- СТИЛИ С УМЕРЕННЫМИ СКРУГЛЕНИЯМИ (уменьшены везде) ----- */
 .form-card {
     background: var(--white);
-    border-radius: 28px;
+    border-radius: 16px;      /* было 28px */
     padding: 24px 22px;
     margin-bottom: 24px;
     border: 1px solid #eef2f6;
@@ -56,13 +56,13 @@ body {
     padding-left: 14px;
 }
 
-/* Стиль для выбора клуба (как в изначальном дизайне) */
+/* Стиль для выбора клуба */
 .club-select {
     width: 100%;
     padding: 14px 18px;
     margin-bottom: 24px;
     border: 1px solid #e2e8f0;
-    border-radius: 24px;
+    border-radius: 14px;      /* было 24px */
     font-size: 16px;
     background: #fff;
     color: var(--dark);
@@ -75,7 +75,7 @@ body {
     box-shadow: 0 0 0 3px rgba(220,20,60,0.1);
 }
 
-/* ----- НОВЫЙ СТИЛЬ ДЛЯ СТРОКИ (part-row) — точь-в-точь как в примере, но адаптируем под контейнер ----- */
+/* ----- СТРОКИ ПОЗИЦИЙ (part-row) ----- */
 .part-row {
     display: flex;
     align-items: center;
@@ -84,7 +84,7 @@ body {
     padding: 10px;
     background: var(--white);
     border: 1px solid var(--light);
-    border-radius: 18px;
+    border-radius: 12px;      /* было 18px */
     margin-bottom: 12px;
     transition: all 0.2s;
 }
@@ -110,7 +110,7 @@ body {
     border: none;
     outline: none;
     background: #f5f6f8;
-    border-radius: 14px;
+    border-radius: 10px;      /* было 14px */
     font-size: 16px;
     color: var(--dark);
     transition: .2s;
@@ -136,7 +136,7 @@ body {
     width: 48px;
     height: 48px;
     border: none;
-    border-radius: 14px;
+    border-radius: 10px;      /* было 14px */
     background: var(--accent);
     color: var(--white);
     display: flex;
@@ -154,7 +154,7 @@ body {
     transform: scale(.96);
 }
 
-/* --- НОВАЯ СТРОКА С КНОПКАМИ: "Добавить" + "Заказать" в одной строке --- */
+/* --- НОВАЯ СТРОКА: Две кнопки в ряд --- */
 .double-action-row {
     display: flex;
     gap: 14px;
@@ -166,7 +166,7 @@ body {
     border: 1px dashed #8a9bb0;
     color: var(--dark);
     padding: 12px 16px;
-    border-radius: 40px;
+    border-radius: 28px;      /* слегка увеличен для кнопок, но всё равно меньше 40px */
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
@@ -188,7 +188,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 12px 16px;
-    border-radius: 40px;
+    border-radius: 28px;      /* уменьшено */
     font-size: 16px;
     transition: 0.2s;
     display: flex;
@@ -199,12 +199,12 @@ body {
 }
 .save-order-btn-inline:active { transform: scale(0.98); }
 
-/* Кнопка открыть список заказов остаётся снизу */
+/* Кнопка открыть список заказов */
 .refresh-btn-under {
     background: var(--dark);
     color: white;
     padding: 14px 16px;
-    border-radius: 20px;
+    border-radius: 14px;      /* было 20px */
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -213,10 +213,10 @@ body {
     margin-top: 12px;
 }
 
-/* Стили для списка заказов (оставляем изначальные, но немного осовремениваем) */
+/* Стили для карточек заказов */
 .card {
     background: var(--white);
-    border-radius: 24px;
+    border-radius: 16px;      /* было 24px */
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     margin-bottom: 16px;
     overflow: hidden;
@@ -259,7 +259,7 @@ body {
 }
 .status-select {
     padding: 6px 12px;
-    border-radius: 20px;
+    border-radius: 14px;      /* было 20px */
     border: 1px solid #e2e8f0;
     background: white;
     font-size: 13px;
@@ -293,7 +293,7 @@ body {
     width: 100%;
     transition: 0.2s;
     padding: 10px 12px;
-    border-radius: 40px;
+    border-radius: 28px;      /* умеренное скругление */
     font-size: 14px;
     font-weight: 500;
     text-align: center;
@@ -307,7 +307,7 @@ body {
     text-align: center;
     padding: 48px 20px;
     background: white;
-    border-radius: 28px;
+    border-radius: 16px;      /* было 28px */
     color: var(--dark);
     border: 1px solid #eef2f6;
 }
@@ -330,7 +330,7 @@ body {
 .filter-group select {
     width: 100%;
     padding: 10px 12px;
-    border-radius: 20px;
+    border-radius: 14px;      /* было 20px */
     font-size: 14px;
     background: #fff;
     cursor: pointer;
@@ -340,7 +340,7 @@ body {
 .search-box {
     width: 100%;
     padding: 12px 16px;
-    border-radius: 30px;
+    border-radius: 20px;      /* чуть скруглено, но не слишком */
     border: 1px solid #e2e8f0;
     font-size: 16px;
     margin-bottom: 0;
@@ -371,7 +371,7 @@ body {
     z-index: 1000;
     animation: fadeUp 0.25s ease;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    border-radius: 0px !important;
+    border-radius: 12px !important;   /* было 0px, теперь аккуратное скругление */
     text-align: center;
     min-width: 260px;
     max-width: 90vw;
@@ -393,7 +393,7 @@ body {
 #login-container {
     background: white;
     padding: 40px 28px;
-    border-radius: 40px;
+    border-radius: 24px;      /* было 40px, уменьшено */
     text-align: center;
     max-width: 400px;
     width: 100%;
@@ -405,7 +405,7 @@ body {
     justify-content: space-between;
     background: white;
     padding: 10px 20px;
-    border-radius: 60px;
+    border-radius: 40px;
     margin-bottom: 24px;
     border: 1px solid #eef2f6;
 }
@@ -417,7 +417,7 @@ body {
 #user-pic {
     width: 42px;
     height: 42px;
-    border-radius: 50%;
+    border-radius: 40px;      /* аватар остаётся круглым */
     object-fit: cover;
 }
 #logout-btn {
@@ -425,7 +425,7 @@ body {
     background: #f4f6fa;
     color: var(--dark);
     padding: 8px 18px;
-    border-radius: 40px;
+    border-radius: 30px;
     margin: 0;
     border: 1px solid #e2e8f0;
     cursor: pointer;
@@ -472,13 +472,12 @@ body {
             <!-- Контейнер для динамических строк (part-row) -->
             <div id="itemsContainer" class="items-list"></div>
             
-            <!-- НОВАЯ СТРОКА: Две кнопки в ряд: Добавить + Заказать -->
+            <!-- Две кнопки в ряд -->
             <div class="double-action-row">
                 <button type="button" id="addItemBtn" class="add-position-btn"><i class="fas fa-plus-circle"></i> Добавить</button>
                 <button id="saveOrderInlineBtn" class="save-order-btn-inline"><i class="fas fa-shopping-cart"></i> Заказать</button>
             </div>
             
-            <!-- кнопка "Открыть список заказов" отдельно (оставлена снизу для удобства) -->
             <button class="refresh-btn-under" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Открыть список заказов</button>
         </div>
         
@@ -495,7 +494,7 @@ body {
 </div>
 
 <script>
-// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS (сохранён оригинальный функционал) -----
+// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS -----
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa5IaKN__SXP6WDen5VXxfsHILUpz6Bk2IyuMOlBVLa6SKUR7eEjw2Sjj7Nm6_M4eTgg/exec';
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -506,9 +505,9 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
-// ---- Управление динамическими позициями (part-row style) ----
+// ---- Управление динамическими позициями ----
 let itemCounter = 0;
-let currentItems = []; // { id, partNumber, quantity }
+let currentItems = [];
 
 function renderItems() {
     const container = document.getElementById('itemsContainer');
@@ -637,7 +636,6 @@ function validateItems() {
     return true;
 }
 
-// ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (toast, дата) -----
 function showToast(msgHtml, isError = false) {
     const toast = document.createElement('div');
     toast.className = 'toast' + (isError ? ' error' : '');
@@ -664,7 +662,6 @@ function parseTimestamp(timestamp) {
 }
 function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-// ----- ВЫЗОВЫ GOOGLE SCRIPT -----
 function callScriptAsync(functionName, data) {
     return new Promise((resolve, reject) => {
         const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
@@ -711,7 +708,6 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
 }
 async function manualRefresh() { await loadOrders(true); }
 
-// ----- СОХРАНЕНИЕ ВСЕХ ПОЗИЦИЙ (каждая позиция — отдельной строкой) -----
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
     if (!club) { showToast('Выберите боулинг-клуб', true); return; }
@@ -814,7 +810,6 @@ function renderOrders(orders) {
         container.appendChild(card);
     });
 }
-// ----- АВТОРИЗАЦИЯ (оригинал) -----
 function loadSheetsAPI() { return new Promise((resolve, reject) => { gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); }); }
 function handleCredentialResponse(response) { try { const payload = parseJwt(response.credential); currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture }; showLoadingAuth(true); initAndCheckEmail(); } catch(e) { showLoadingAuth(false); alert('Ошибка входа'); } }
 function showLoadingAuth(show) { const c = document.getElementById('login-container'); if(show && c){ if(!c.hasAttribute('data-original')) c.setAttribute('data-original',c.innerHTML); c.innerHTML='<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>'; } else if(c && c.getAttribute('data-original')){ c.innerHTML=c.getAttribute('data-original'); if(window.google?.accounts?.id) google.accounts.id.renderButton(document.querySelector('.g_id_signin'),{ type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' }); } }
