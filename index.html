@@ -92,7 +92,7 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwc7OSRQB8dYApL7mhfhtwiv398xO5SnDWhi050BHTOZ_rZ6-G_Uvp9Og00iM2vWvqP1A/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5MTxrTxlsDL5R1EJDiqsqDbrffwhRr-NbUWOg_14NpIsQPwggq6p5OOHrTcLXuZ_uxw/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -152,6 +152,14 @@ function showDeliveredOrders() {
 }
 
 function renderFilteredOrders() {
+    if (!allOrders || allOrders.length === 0) {
+        const container = document.getElementById('ordersList');
+        if (container) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</div>';
+        }
+        return;
+    }
+    
     let filteredOrders = [];
     if (currentFilter === 'active') {
         filteredOrders = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
@@ -168,8 +176,15 @@ async function loadOrders() {
     container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
+        
         if (orders && orders.error) throw new Error(orders.error);
-        allOrders = Array.isArray(orders) ? orders : [];
+        
+        if (Array.isArray(orders)) {
+            allOrders = orders;
+        } else {
+            allOrders = [];
+        }
+        
         renderFilteredOrders();
         return allOrders;
     } catch(err) {
@@ -226,16 +241,14 @@ async function updateStatus(row, newStatus, selectElement) {
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
-        selectElement.value = originalValue;
-        selectElement.classList.remove('status-pending', 'status-delivered');
-        if (originalValue === 'Активно') {
-            selectElement.classList.add('status-pending');
-        } else {
-            selectElement.classList.add('status-delivered');
+        if (selectElement) {
+            selectElement.value = originalValue;
         }
     } finally {
-        selectElement.disabled = false;
-        selectElement.style.opacity = '1';
+        if (selectElement) {
+            selectElement.disabled = false;
+            selectElement.style.opacity = '1';
+        }
     }
 }
 
@@ -284,7 +297,7 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
-        const dateStr = order.timestamp || '—';
+        const dateStr = order.timestamp && order.timestamp !== '—' ? order.timestamp : 'Дата не указана';
         const table = document.createElement('table'); 
         table.className = 'order-table';
         
@@ -507,6 +520,7 @@ window.addEventListener('load', async () => {
                 await loadOrders();
             } else {
                 showToast('❌ Нет доступа к таблице', true);
+                document.getElementById('ordersList').innerHTML = '<div class="empty-state">❌ Нет доступа к таблице</div>';
             }
         } catch(err) {
             console.error('Ошибка инициализации:', err);
