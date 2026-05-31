@@ -2,379 +2,61 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Блокнот заказов запчастей</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
 <style>
-/* Базовое обнуление и фиксация масштабирования */
-* {
-    box-sizing: border-box;
-    /* Запрещаем изменение размера шрифта при зуме на iOS */
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
+*{box-sizing:border-box;}
+body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#f4f6fa;color:#1a2f40;}
+.wrapper{max-width:800px;margin:0 auto;}
+.form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:28px;border:1px solid #eef2f6;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
+.form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#1a2f40;display:flex;align-items:center;gap:8px;border-left:4px solid #1a2f40;padding-left:12px;}
+input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:20px;font-size:15px;background:#fff;color:#1a2f40;}
+input:focus,select:focus{outline:none;border-color:#dc143c;box-shadow:0 0 0 3px rgba(220,20,60,0.1);}
+button{background:#1a2f40;color:white;font-weight:600;border:none;cursor:pointer;margin-bottom:0;transition:0.2s;}
+button:active{transform:scale(0.98);}
+button:disabled{opacity:0.6;transform:none;}
+.save-btn{background:#1a2f40;margin-top:8px;}
+.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;transition:all 0.3s ease;}
+.card.new-order{animation:highlightNew 0.8s ease;}
+@keyframes highlightNew{
+    0%{background:#fff8e7; transform:scale(0.98); opacity:0.5;}
+    50%{background:#fff0c0; transform:scale(1);}
+    100%{background:#ffffff; opacity:1;}
 }
-
-body {
-    margin: 0;
-    padding: 16px;
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
-    background: #f4f6fa;
-    color: #1a2f40;
-    /* Запрещаем масштабирование через жесты (доп. защита) */
-    touch-action: pan-x pan-y;
-    /* Фиксируем ширину от body, чтобы не было горизонтального скролла при зуме */
-    overflow-x: hidden;
-    width: 100%;
-    position: relative;
-}
-
-/* Контейнер-обёртка с фиксированной максимальной шириной, не растягивается при зуме */
-.wrapper {
-    max-width: 800px;
-    margin: 0 auto;
-    width: 100%;
-    /* Сохраняем пропорции */
-    transform-origin: top left;
-}
-
-/* Все элементы не должны расширяться за пределы body при зуме */
-img, iframe, video, canvas, svg {
-    max-width: 100%;
-    height: auto;
-}
-
-/* Стили форм и карточек — без изменений от масштаба */
-.form-card {
-    background: white;
-    border-radius: 28px;
-    padding: 20px 18px;
-    margin-bottom: 28px;
-    border: 1px solid #eef2f6;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-}
-
-.form-title {
-    font-weight: 600;
-    font-size: 18px;
-    margin-bottom: 16px;
-    color: #1a2f40;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-left: 4px solid #1a2f40;
-    padding-left: 12px;
-}
-
-input, select, button {
-    width: 100%;
-    padding: 14px 16px;
-    margin-bottom: 16px;
-    border: 1px solid #e2e8f0;
-    border-radius: 20px;
-    font-size: 15px;
-    background: #fff;
-    color: #1a2f40;
-    /* Предотвращаем увеличение шрифта на iOS при фокусе */
-    font-size: 16px;
-}
-
-/* Для старых iOS, если вдруг 16px не хватает — гарантируем, что зум не включается */
-@media screen and (-webkit-min-device-pixel-ratio: 0) {
-    input, select, textarea {
-        font-size: 16px;
-    }
-}
-
-input:focus, select:focus {
-    outline: none;
-    border-color: #dc143c;
-    box-shadow: 0 0 0 3px rgba(220,20,60,0.1);
-}
-
-button {
-    background: #1a2f40;
-    color: white;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    margin-bottom: 0;
-    transition: 0.2s;
-}
-
-button:active {
-    transform: scale(0.98);
-}
-
-button:disabled {
-    opacity: 0.6;
-    transform: none;
-}
-
-.save-btn {
-    background: #1a2f40;
-    margin-top: 8px;
-}
-
-.card {
-    background: #ffffff;
-    border-radius: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    margin-bottom: 16px;
-    overflow: hidden;
-    border: 1px solid #eef2f6;
-    transition: opacity 0.3s;
-}
-
-.order-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.order-table tr {
-    border-bottom: 1px solid #f0f2f5;
-}
-
-.order-table tr:last-child {
-    border-bottom: none;
-}
-
-.order-table td {
-    padding: 14px 16px;
-    font-size: 14px;
-    vertical-align: top;
-}
-
-.order-table td:first-child {
-    font-weight: 500;
-    color: #1a2f40;
-    width: 38%;
-    background: #fefefe;
-}
-
-.order-table td:last-child {
-    color: #1a2f40;
-    text-align: right;
-    word-break: break-word;
-}
-
-.status-select {
-    padding: 6px 12px;
-    border-radius: 20px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    width: auto;
-    margin: 0;
-}
-
-.status-select.status-pending {
-    color: #dc143c;
-    border-color: #dc143c;
-    background: #fff5f7;
-}
-
-.status-select.status-delivered {
-    color: #1a2f40;
-    border-color: #1a2f40;
-    background: #f4f6fa;
-}
-
-.action-bar {
-    display: flex;
-    gap: 12px;
-    padding: 12px 16px 18px;
-    background: white;
-    border-top: 1px solid #edf2f7;
-    justify-content: space-between;
-}
-
-.action-btn {
-    flex: 1;
-    padding: 10px 12px;
-    border-radius: 40px;
-    font-size: 14px;
-    font-weight: 500;
-    text-align: center;
-    cursor: pointer;
-    border: none;
-}
-
-.delete-btn {
-    background: white;
-    color: #dc143c;
-    border: 1px solid #dc143c;
-    width: 100%;
-    transition: 0.2s;
-}
-
-.delete-btn:hover {
-    background: #dc143c;
-    color: white;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    background: white;
-    border-radius: 28px;
-    color: #1a2f40;
-    border: 1px solid #eef2f6;
-}
-
-#login-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 500px;
-}
-
-#login-container {
-    background: white;
-    padding: 40px 28px;
-    border-radius: 40px;
-    text-align: center;
-    max-width: 400px;
-    width: 100%;
-    border: 1px solid #eef2f6;
-}
-
-#user-info {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    background: white;
-    padding: 10px 20px;
-    border-radius: 60px;
-    margin-bottom: 24px;
-    border: 1px solid #eef2f6;
-}
-
-.user-details {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-#user-pic {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-#logout-btn {
-    width: auto;
-    background: #f4f6fa;
-    color: #1a2f40;
-    padding: 8px 18px;
-    border-radius: 40px;
-    margin: 0;
-    border: 1px solid #e2e8f0;
-}
-
-.toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1a2f40;
-    color: white;
-    padding: 10px 24px;
-    border-radius: 60px;
-    font-size: 14px;
-    z-index: 1000;
-    animation: fadeUp 0.25s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.toast.error {
-    background: #dc143c;
-}
-
-@keyframes fadeUp {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
-}
-
-.loading-spinner {
-    display: inline-block;
-    width: 36px;
-    height: 36px;
-    border: 3px solid #e2e8f0;
-    border-radius: 50%;
-    border-top-color: #1a2f40;
-    animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.filter-section {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.filter-group {
-    flex: 1;
-    min-width: 150px;
-}
-
-.filter-group select {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 20px;
-    font-size: 14px;
-    background: #fff;
-    cursor: pointer;
-    border-color: #e2e8f0;
-}
-
-.search-box {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 30px;
-    border: 1px solid #e2e8f0;
-    font-size: 14px;
-    margin-bottom: 16px;
-}
-
-.refresh-btn-under {
-    background: #1a2f40;
-    color: white;
-    padding: 14px 16px;
-    border-radius: 20px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    width: 100%;
-    margin-top: 0;
-}
-
-.refresh-btn-under:hover {
-    background: #0f1e2a;
-}
-
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 8px;
-}
+.order-table{width:100%;border-collapse:collapse;}
+.order-table tr{border-bottom:1px solid #f0f2f5;}
+.order-table tr:last-child{border-bottom:none;}
+.order-table td{padding:14px 16px;font-size:14px;vertical-align:top;}
+.order-table td:first-child{font-weight:500;color:#1a2f40;width:38%;background:#fefefe;}
+.order-table td:last-child{color:#1a2f40;text-align:right;word-break:break-word;}
+.status-select{padding:6px 12px;border-radius:20px;border:1px solid #e2e8f0;background:white;font-size:13px;font-weight:500;cursor:pointer;width:auto;margin:0;}
+.status-select.status-pending{color:#dc143c;border-color:#dc143c;background:#fff5f7;}
+.status-select.status-delivered{color:#1a2f40;border-color:#1a2f40;background:#f4f6fa;}
+.action-bar{display:flex;gap:12px;padding:12px 16px 18px;background:white;border-top:1px solid #edf2f7;justify-content:space-between;}
+.action-btn{flex:1;padding:10px 12px;border-radius:40px;font-size:14px;font-weight:500;text-align:center;cursor:pointer;border:none;}
+.delete-btn{background:white;color:#dc143c;border:1px solid #dc143c;width:100%; transition:0.2s;}
+.delete-btn:hover{background:#dc143c;color:white;}
+.empty-state{text-align:center;padding:48px 20px;background:white;border-radius:28px;color:#1a2f40;border:1px solid #eef2f6;}
+#login-section{display:flex;justify-content:center;align-items:center;min-height:500px;}
+#login-container{background:white;padding:40px 28px;border-radius:40px;text-align:center;max-width:400px;width:100%;border:1px solid #eef2f6;}
+#user-info{display:none;align-items:center;justify-content:space-between;background:white;padding:10px 20px;border-radius:60px;margin-bottom:24px;border:1px solid #eef2f6;}
+.user-details{display:flex;align-items:center;gap:12px;}
+#user-pic{width:42px;height:42px;border-radius:50%;object-fit:cover;}
+#logout-btn{width:auto;background:#f4f6fa;color:#1a2f40;padding:8px 18px;border-radius:40px;margin:0; border:1px solid #e2e8f0;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2f40;color:white;padding:10px 24px;border-radius:60px;font-size:14px;z-index:1000;animation:fadeUp 0.25s ease; box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+.toast.error{background:#dc143c;}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1a2f40;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-group{flex:1;min-width:150px;}
+.filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;border-color:#e2e8f0;}
+.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
+.refresh-btn-under{background:#1a2f40;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
+.refresh-btn-under:hover{background:#0f1e2a;}
+.button-group{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -517,10 +199,17 @@ function applyFilters() {
         );
     }
     
+    // 🔄 СОРТИРОВКА: сначала новые (по дате, самые свежие сверху)
+    filteredOrders.sort((a, b) => {
+        const dateA = a.timestamp ? new Date(a.timestamp) : 0;
+        const dateB = b.timestamp ? new Date(b.timestamp) : 0;
+        return dateB - dateA; // по убыванию (новые сверху)
+    });
+    
     renderOrders(filteredOrders);
 }
 
-async function loadOrders(showLoading = true) {
+async function loadOrders(showLoading = true, highlightNewId = null) {
     if (isLoading) return;
     isLoading = true;
     
@@ -534,11 +223,33 @@ async function loadOrders(showLoading = true) {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
+        
+        // Сортируем ВСЕ заказы при загрузке (новые сверху)
+        allOrders.sort((a, b) => {
+            const dateA = a.timestamp ? new Date(a.timestamp) : 0;
+            const dateB = b.timestamp ? new Date(b.timestamp) : 0;
+            return dateB - dateA;
+        });
+        
         applyFilters();
+        
+        // Если есть highlightNewId, подсветим карточку
+        if (highlightNewId) {
+            setTimeout(() => {
+                const newCard = document.querySelector(`.card[data-row="${highlightNewId}"]`);
+                if (newCard) {
+                    newCard.classList.add('new-order');
+                    setTimeout(() => newCard.classList.remove('new-order'), 1000);
+                    // плавный скролл к новому заказу
+                    newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+        
         if (allOrders.length === 0 && container) {
             container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
         }
-        showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов`);
+        showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов (новые сверху)`);
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
@@ -583,13 +294,17 @@ async function saveOrder() {
         
         if (result && result.error) throw new Error(result.error);
         
+        // Сохраняем ID (или временную метку) добавленной строки, чтобы подсветить
+        const newRowId = result && result.row ? result.row : (result && result.id ? result.id : null);
+        
         showToast(`<i class="fas fa-check-circle"></i> Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
         
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        await loadOrders(true);
+        // Перезагружаем и подсвечиваем новый заказ
+        await loadOrders(true, newRowId);
         
     } catch(err) {
         showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
@@ -610,7 +325,7 @@ async function updateStatus(row, newStatus, selectElement) {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
         
-        const orderIndex = allOrders.findIndex(order => order.row === row);
+        const orderIndex = allOrders.findIndex(order => order.row == row);
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
@@ -640,11 +355,12 @@ async function deleteOrder(row, cardElement) {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
         
-        const orderIndex = allOrders.findIndex(order => order.row === row);
+        const orderIndex = allOrders.findIndex(order => order.row == row);
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
         
+        // После удаления снова применяем сортировку и фильтры
         applyFilters();
         
         showToast('<i class="fas fa-trash-alt"></i> Заказ удалён');
