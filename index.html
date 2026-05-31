@@ -122,7 +122,7 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
-let dataLoadedOnce = false; // Флаг: данные уже загружены хотя бы раз
+let backgroundLoadPromise = null; // Храним промис фоновой загрузки
 
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
@@ -196,63 +196,54 @@ function applyFilters() {
     renderOrders(filteredOrders);
 }
 
-// Фоновая загрузка - без индикаторов, без тостов
-async function loadDataInBackground() {
-    if (isLoading) return;
-    isLoading = true;
+// Фоновая загрузка - возвращает промис
+function startBackgroundLoad() {
+    if (backgroundLoadPromise) return backgroundLoadPromise;
     
-    try {
-        const orders = await callScriptAsync('getOrders');
-        if (orders && !orders.error) {
-            allOrders = Array.isArray(orders) ? orders : [];
-            dataLoadedOnce = true;
-            // Тихо обновляем отображение
-            if (document.getElementById('ordersList')) {
-                applyFilters();
-            }
-        }
-    } catch(err) {
-        console.error('Фоновая загрузка ошибка:', err);
-    } finally {
-        isLoading = false;
-    }
-}
-
-// МГНОВЕННОЕ ОБНОВЛЕНИЕ - показывает то, что уже есть в памяти
-async function manualRefresh() {
-    // Если данные уже загружены - показываем мгновенно
-    if (dataLoadedOnce && allOrders.length >= 0) {
-        applyFilters(); // Мгновенный показ!
-        showToast(`📋 Показано ${allOrders.length} заказов (из кэша)`, false);
-        
-        // В фоне обновляем данные (не блокируя интерфейс)
-        loadDataInBackground().then(() => {
-            // После фонового обновления показываем актуальные данные (но это уже будет незаметно)
-            applyFilters();
-            showToast(`🔄 Данные обновлены: ${allOrders.length} заказов`, false);
-        }).catch(() => {});
-    } else {
-        // Если данных ещё нет (редкий случай), показываем спиннер и грузим
-        const container = document.getElementById('ordersList');
-        if (container) {
-            container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка...</div>';
-        }
+    backgroundLoadPromise = (async () => {
+        if (isLoading) return;
+        isLoading = true;
         try {
             const orders = await callScriptAsync('getOrders');
             if (orders && !orders.error) {
                 allOrders = Array.isArray(orders) ? orders : [];
-                dataLoadedOnce = true;
-                applyFilters();
-                showToast(`✅ Загружено ${allOrders.length} заказов`, false);
-            } else {
-                throw new Error('Нет данных');
+                // Применяем фильтры и обновляем отображение
+                if (document.getElementById('ordersList')) {
+                    applyFilters();
+                }
             }
         } catch(err) {
-            showToast(`❌ Ошибка: ${err.message}`, true);
-            if (document.getElementById('ordersList')) {
-                document.getElementById('ordersList').innerHTML = '<div class="empty-state">⚠️ Ошибка загрузки</div>';
-            }
+            console.error('Фоновая загрузка ошибка:', err);
+        } finally {
+            isLoading = false;
         }
+    })();
+    
+    return backgroundLoadPromise;
+}
+
+// КНОПКА "ОБНОВИТЬ ДАННЫЕ" - МГНОВЕННАЯ!
+// Никаких запросов, просто показывает то, что уже загружено
+function manualRefresh() {
+    if (allOrders.length > 0) {
+        // Данные есть - показываем мгновенно
+        applyFilters();
+        showToast(`📋 Показано ${allOrders.length} заказов`, false);
+    } else if (backgroundLoadPromise) {
+        // Данные ещё загружаются - показываем сообщение
+        showToast(`⏳ Данные загружаются, подождите...`, false);
+        // Ждём окончания загрузки и показываем
+        backgroundLoadPromise.then(() => {
+            applyFilters();
+            showToast(`✅ Загружено ${allOrders.length} заказов`, false);
+        });
+    } else {
+        // Нет данных и нет загрузки - запускаем загрузку
+        showToast(`🔄 Загружаем данные...`, false);
+        startBackgroundLoad().then(() => {
+            applyFilters();
+            showToast(`✅ Загружено ${allOrders.length} заказов`, false);
+        });
     }
 }
 
@@ -284,9 +275,9 @@ async function saveOrder() {
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        // Обновляем данные в фоне
-        await loadDataInBackground();
-        applyFilters();
+        // После сохранения обновляем данные в фоне
+        backgroundLoadPromise = null;
+        startBackgroundLoad();
         
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
@@ -519,17 +510,14 @@ async function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    // Показываем "загрузку" только если данных ещё нет
-    if (!dataLoadedOnce) {
-        const container = document.getElementById('ordersList');
-        if (container) {
-            container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка данных...</div>';
-        }
+    // Показываем индикатор загрузки
+    const container = document.getElementById('ordersList');
+    if (container) {
+        container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка данных...</div>';
     }
     
-    // Загружаем данные в фоне (без блокировки интерфейса)
-    await loadDataInBackground();
-    applyFilters();
+    // Запускаем фоновую загрузку
+    await startBackgroundLoad();
 }
 
 function parseJwt(token) {
@@ -554,7 +542,7 @@ window.handleCredentialResponse = handleCredentialResponse;
 window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
 
-// ПРИ ЗАГРУЗКЕ СТРАНИЦЫ - тихо загружаем данные в фоне
+// ПРИ ЗАГРУЗКЕ СТРАНИЦЫ - запускаем фоновую загрузку
 window.addEventListener('load', async () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
@@ -591,14 +579,12 @@ window.addEventListener('load', async () => {
             }
             
             if (hasAccess) {
-                // ТИХАЯ ФОНОВАЯ ЗАГРУЗКА (без индикаторов)
-                loadDataInBackground(); // не ждём, просто запускаем в фоне
-                // Показываем плейсхолдер если данных нет
-                if (allOrders.length === 0 && !dataLoadedOnce) {
-                    document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка...</div>';
-                } else {
-                    applyFilters();
+                // Запускаем фоновую загрузку
+                const container = document.getElementById('ordersList');
+                if (container) {
+                    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка данных...</div>';
                 }
+                startBackgroundLoad();
             } else {
                 showToast('❌ Нет доступа к таблице', true);
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state">⛔ Нет доступа к таблице</div>';
@@ -633,5 +619,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
 
