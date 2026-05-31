@@ -43,13 +43,14 @@ button:disabled{opacity:0.6;transform:none;}
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1e2f3f;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
-.filter-group{flex:1;min-width:180px;}
+.filter-group{flex:1;min-width:150px;}
 .filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;}
-.stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;flex-wrap:wrap;gap:10px;}
+.stats-bar{background:#f8fafc;padding:8px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:center;align-items:center;gap:20px;font-size:13px;flex-wrap:wrap;}
 .stats-bar span{font-weight:600;color:#1e2f3f;}
 .search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
-.refresh-btn-bottom{background:#4a5b6e;color:white;padding:12px 20px;border-radius:40px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:20px;}
-.refresh-btn-bottom:hover{background:#2c3e4e;}
+.refresh-btn-under{background:#4a5b6e;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
+.refresh-btn-under:hover{background:#2c3e4e;}
+.button-group{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -82,13 +83,16 @@ button:disabled{opacity:0.6;transform:none;}
             </select>
             <input type="text" id="partNumber" placeholder="Номер детали (например: 7890-A)" autocomplete="off">
             <input type="number" id="quantity" placeholder="Количество" min="1" value="1">
-            <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
+            
+            <div class="button-group">
+                <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
+                <button class="refresh-btn-under" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Обновить данные</button>
+            </div>
         </div>
         
         <!-- Фильтрация -->
         <div class="filter-section">
             <div class="filter-group">
-                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Статус заказа:</label>
                 <select id="statusFilter">
                     <option value="all">📋 Все заказы</option>
                     <option value="active">🟠 Активные</option>
@@ -96,7 +100,6 @@ button:disabled{opacity:0.6;transform:none;}
                 </select>
             </div>
             <div class="filter-group">
-                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Боулинг-клуб:</label>
                 <select id="clubFilter">
                     <option value="all">🎳 Все клубы</option>
                     <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
@@ -109,18 +112,13 @@ button:disabled{opacity:0.6;transform:none;}
         <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по номеру детали или клубу..." onkeyup="applyFilters()">
         
         <div class="stats-bar" id="statsBar">
-            <span>📊 Всего: <span id="totalCount">0</span></span>
-            <span>🟠 Активных: <span id="activeCount">0</span></span>
-            <span>✅ Доставленных: <span id="deliveredCount">0</span></span>
+            <span><i class="fas fa-chart-simple"></i> Всего: <span id="totalCount">0</span></span>
+            <span><i class="fas fa-play-circle"></i> Активных: <span id="activeCount">0</span></span>
+            <span><i class="fas fa-check-circle"></i> Доставленных: <span id="deliveredCount">0</span></span>
             <span id="loadingIndicator" style="color:#1e2f3f; display:none;"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</span>
         </div>
         
         <div id="ordersList"></div>
-        
-        <!-- Кнопка обновления внизу -->
-        <button class="refresh-btn-bottom" onclick="manualRefresh()">
-            <i class="fas fa-sync-alt"></i> Обновить данные
-        </button>
     </div>
 </div>
 
@@ -186,28 +184,22 @@ function callScriptAsync(functionName, data) {
 }
 
 function applyFilters() {
-    // Получаем значения фильтров
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
     
-    // Применяем все фильтры
     let filteredOrders = [...allOrders];
     
-    // Фильтр по статусу
     if (statusFilter === 'active') {
         filteredOrders = filteredOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
     } else if (statusFilter === 'delivered') {
         filteredOrders = filteredOrders.filter(order => order.status === 'Доставлено');
     }
-    // 'all' - показываем все
     
-    // Фильтр по клубу
     if (clubFilter !== 'all') {
         filteredOrders = filteredOrders.filter(order => order.club === clubFilter);
     }
     
-    // Поиск
     if (searchQuery) {
         filteredOrders = filteredOrders.filter(order => 
             order.partNumber.toLowerCase().includes(searchQuery) ||
@@ -215,7 +207,6 @@ function applyFilters() {
         );
     }
     
-    // Рендерим отфильтрованные заказы
     renderOrders(filteredOrders);
 }
 
@@ -258,10 +249,7 @@ async function loadOrders(showLoading = true) {
         
         allOrders = Array.isArray(orders) ? orders : [];
         
-        // Обновляем статистику
         updateStats();
-        
-        // Применяем текущие фильтры
         applyFilters();
         
         if (allOrders.length === 0 && container) {
@@ -288,7 +276,6 @@ async function loadOrders(showLoading = true) {
     }
 }
 
-// Функция для принудительного обновления
 async function manualRefresh() {
     await loadOrders(true);
 }
@@ -321,12 +308,10 @@ async function saveOrder() {
         
         showToast(`✅ Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
         
-        // Очищаем форму
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        // Принудительно перезагружаем заказы
         await loadOrders(true);
         
     } catch(err) {
@@ -348,16 +333,12 @@ async function updateStatus(row, newStatus, selectElement) {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
         
-        // Обновляем статус в локальном массиве
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders[orderIndex].status = newStatus;
         }
         
-        // Обновляем статистику
         updateStats();
-        
-        // Применяем фильтры заново
         applyFilters();
         
         showToast(`✅ Статус изменён на "${newStatus}"`);
@@ -383,13 +364,11 @@ async function deleteOrder(row, cardElement) {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
         
-        // Удаляем из локального массива
         const orderIndex = allOrders.findIndex(order => order.row === row);
         if (orderIndex !== -1) {
             allOrders.splice(orderIndex, 1);
         }
         
-        // Обновляем статистику
         updateStats();
         applyFilters();
         
@@ -589,7 +568,6 @@ async function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    // Принудительно загружаем заказы
     await loadOrders(true);
 }
 
@@ -609,7 +587,6 @@ function signOut() {
     location.reload(); 
 }
 
-// Глобальные функции для вызова из HTML
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
@@ -619,7 +596,6 @@ window.loadOrders = loadOrders;
 window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
 
-// Инициализация при загрузке
 window.addEventListener('load', async () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
@@ -656,9 +632,7 @@ window.addEventListener('load', async () => {
             }
             
             if (hasAccess) {
-                // Показываем индикатор загрузки
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
-                // Принудительно загружаем заказы
                 await loadOrders(true);
             } else {
                 showToast('❌ Нет доступа к таблице', true);
@@ -682,7 +656,6 @@ window.addEventListener('load', async () => {
     }
 });
 
-// Добавляем слушатели для фильтров
 document.addEventListener('DOMContentLoaded', () => {
     const statusFilter = document.getElementById('statusFilter');
     const clubFilter = document.getElementById('clubFilter');
