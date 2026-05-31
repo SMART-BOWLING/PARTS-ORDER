@@ -47,8 +47,6 @@ button:disabled{opacity:0.6;transform:none;}
 .filter-btn.active{background:#1e2f3f;color:white;}
 .filter-btn:not(.active){background:#e2e8f0;color:#475569;}
 .filter-btn:not(.active):hover{background:#cbd5e1;}
-.debug-panel{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:12px;padding:12px;margin-bottom:16px;font-size:12px;font-family:monospace;}
-.debug-panel pre{margin:0;white-space:pre-wrap;word-break:break-all;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -90,17 +88,11 @@ button:disabled{opacity:0.6;transform:none;}
         </div>
         
         <div id="ordersList"></div>
-        
-        <!-- Панель отладки -->
-        <div class="debug-panel" id="debugPanel" style="display:none;">
-            <div><strong>🔧 Отладка:</strong> <button onclick="toggleDebug()" style="width:auto;padding:4px 8px;font-size:11px;">Скрыть</button></div>
-            <pre id="debugContent">Загрузка...</pre>
-        </div>
     </div>
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwp0iC1SFDVbfvv16F2i3fru0SCedf6KxjGHyHptRP0lqXbaSNgAKQGcLgH9vuuVbJhw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0RzP7Pp_XQ5h3KibStxSuZ55QnS9s-QvsTST_gQiaQYGSvLQYnpuKcI35XRcvbsxwYg/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -110,27 +102,6 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let currentFilter = 'active';
-let debugMode = true;
-
-function addDebug(msg) {
-    console.log(msg);
-    if (debugMode) {
-        const debugContent = document.getElementById('debugContent');
-        if (debugContent) {
-            const timestamp = new Date().toLocaleTimeString();
-            debugContent.textContent += `\n[${timestamp}] ${msg}`;
-        }
-    }
-}
-
-function toggleDebug() {
-    const panel = document.getElementById('debugPanel');
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-    } else {
-        panel.style.display = 'none';
-    }
-}
 
 function showToast(msg, isError) {
     const toast = document.createElement('div');
@@ -146,7 +117,6 @@ function callScriptAsync(functionName, data) {
         const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
         window[callbackName] = function(response) {
             delete window[callbackName];
-            addDebug(`Ответ от ${functionName}: ${JSON.stringify(response).substring(0, 200)}`);
             if (response && response.error) reject(new Error(response.error));
             else resolve(response && response.result ? response.result : response);
         };
@@ -168,7 +138,6 @@ function callScriptAsync(functionName, data) {
 }
 
 function showActiveOrders() {
-    addDebug('Нажата кнопка АКТИВНЫЕ');
     currentFilter = 'active';
     document.getElementById('showActiveBtn').classList.add('active');
     document.getElementById('showDeliveredBtn').classList.remove('active');
@@ -176,7 +145,6 @@ function showActiveOrders() {
 }
 
 function showDeliveredOrders() {
-    addDebug('Нажата кнопка ДОСТАВЛЕННЫЕ');
     currentFilter = 'delivered';
     document.getElementById('showActiveBtn').classList.remove('active');
     document.getElementById('showDeliveredBtn').classList.add('active');
@@ -184,71 +152,29 @@ function showDeliveredOrders() {
 }
 
 function renderFilteredOrders() {
-    addDebug(`=== renderFilteredOrders: фильтр=${currentFilter}, всего заказов=${allOrders.length}`);
-    
     let filteredOrders = [];
     if (currentFilter === 'active') {
-        filteredOrders = allOrders.filter(order => {
-            const isActive = order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '';
-            addDebug(`Заказ ${order.row}: статус="${order.status}", активен=${isActive}`);
-            return isActive;
-        });
+        filteredOrders = allOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
     } else {
-        filteredOrders = allOrders.filter(order => {
-            const isDelivered = order.status === 'Доставлено';
-            addDebug(`Заказ ${order.row}: статус="${order.status}", доставлен=${isDelivered}`);
-            return isDelivered;
-        });
+        filteredOrders = allOrders.filter(order => order.status === 'Доставлено');
     }
-    
-    addDebug(`Отфильтровано ${filteredOrders.length} заказов`);
     renderOrders(filteredOrders);
 }
 
-async function forceLoadOrders() {
-    addDebug('=== forceLoadOrders START ===');
-    const container = document.getElementById('ordersList');
-    container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
-    
-    try {
-        const orders = await callScriptAsync('getOrders');
-        addDebug(`Ответ от сервера: ${JSON.stringify(orders)}`);
-        if (orders && orders.error) throw new Error(orders.error);
-        allOrders = Array.isArray(orders) ? orders : [];
-        addDebug(`Загружено заказов: ${allOrders.length}`);
-        allOrders.forEach((order, idx) => {
-            addDebug(`Заказ ${idx+1}: row=${order.row}, part=${order.partNumber}, status="${order.status}"`);
-        });
-        renderFilteredOrders();
-        showToast(`✅ Загружено ${allOrders.length} заказов`);
-    } catch(err) {
-        addDebug(`ОШИБКА: ${err.message}`);
-        console.error('Ошибка загрузки:', err);
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="forceLoadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
-    }
-}
-
 async function loadOrders() {
-    addDebug('=== loadOrders START ===');
     const container = document.getElementById('ordersList');
     if (!container) return;
     
     container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
-        addDebug(`Ответ от сервера: ${JSON.stringify(orders)}`);
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
-        addDebug(`Загружено заказов: ${allOrders.length}`);
-        allOrders.forEach((order, idx) => {
-            addDebug(`Заказ ${idx+1}: row=${order.row}, part=${order.partNumber}, status="${order.status}"`);
-        });
         renderFilteredOrders();
         return allOrders;
     } catch(err) {
-        addDebug(`ОШИБКА: ${err.message}`);
         console.error('Ошибка загрузки:', err);
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="forceLoadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
+        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         return [];
     }
 }
@@ -297,11 +223,16 @@ async function updateStatus(row, newStatus, selectElement) {
         }
         
         renderFilteredOrders();
-        
         showToast(`✅ Статус изменён на "${newStatus}"`);
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
         selectElement.value = originalValue;
+        selectElement.classList.remove('status-pending', 'status-delivered');
+        if (originalValue === 'Активно') {
+            selectElement.classList.add('status-pending');
+        } else {
+            selectElement.classList.add('status-delivered');
+        }
     } finally {
         selectElement.disabled = false;
         selectElement.style.opacity = '1';
@@ -327,7 +258,6 @@ async function deleteOrder(row, cardElement) {
         }
         
         renderFilteredOrders();
-        
         showToast('🗑 Заказ удалён');
     } catch(err) {
         showToast(`Ошибка: ${err.message}`, true);
@@ -341,8 +271,6 @@ async function deleteOrder(row, cardElement) {
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    
-    addDebug(`=== renderOrders: отображаем ${orders.length} заказов ===`);
     
     if (!orders || orders.length === 0) {
         const message = currentFilter === 'active' ? 'Нет активных заказов' : 'Нет доставленных заказов';
@@ -507,18 +435,12 @@ function loginUser(user) {
     document.getElementById('user-name').innerText = currentUserNameFromSheet || user.name;
     document.getElementById('user-email').innerText = user.email;
     
-    // Показываем панель отладки
-    document.getElementById('debugPanel').style.display = 'block';
-    document.getElementById('debugContent').textContent = 'Отладка запущена...\n';
-    
     localStorage.setItem('userLoggedIn', 'true');
     localStorage.setItem('userEmail', user.email);
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    setTimeout(() => {
-        forceLoadOrders();
-    }, 500);
+    loadOrders();
 }
 
 function parseJwt(token) {
@@ -537,36 +459,26 @@ function signOut() {
     location.reload(); 
 }
 
-// Глобальные функции
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
-window.forceLoadOrders = forceLoadOrders;
 window.showActiveOrders = showActiveOrders;
 window.showDeliveredOrders = showDeliveredOrders;
-window.toggleDebug = toggleDebug;
 
 window.addEventListener('load', async () => {
-    addDebug('Страница загружена');
-    
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
     
     if (logged && savedEmail) {
-        addDebug(`Найден сохранённый email: ${savedEmail}`);
-        
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('user-info').style.display = 'flex';
         document.getElementById('main-content').style.display = 'block';
         document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
         document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
         document.getElementById('user-email').innerText = savedEmail;
-        
-        document.getElementById('debugPanel').style.display = 'block';
-        document.getElementById('debugContent').textContent = 'Отладка запущена...\n';
         
         currentUser = { 
             email: savedEmail, 
@@ -592,18 +504,15 @@ window.addEventListener('load', async () => {
             }
             
             if (hasAccess) {
-                addDebug('Доступ подтверждён');
-                await forceLoadOrders();
+                await loadOrders();
             } else {
-                addDebug('НЕТ ДОСТУПА!');
                 showToast('❌ Нет доступа к таблице', true);
             }
         } catch(err) {
-            addDebug(`ОШИБКА: ${err.message}`);
             console.error('Ошибка инициализации:', err);
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Загрузить заказы</button></div>`;
         }
     } else {
-        addDebug('Нет сохранённой сессии');
         document.getElementById('login-section').style.display = 'flex';
         if (google?.accounts?.id) {
             google.accounts.id.initialize({ 
