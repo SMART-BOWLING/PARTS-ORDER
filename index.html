@@ -18,6 +18,7 @@ button{background:#1e2f3f;color:white;font-weight:600;border:none;cursor:pointer
 button:active{transform:scale(0.98);}
 button:disabled{opacity:0.6;transform:none;}
 .save-btn{background:#1e2f3f;margin-top:8px;}
+.refresh-btn{background:#2c5f8a;margin-bottom:16px;}
 .card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;}
 .order-table{width:100%;border-collapse:collapse;}
 .order-table tr{border-bottom:1px solid #f0f2f5;}
@@ -43,6 +44,8 @@ button:disabled{opacity:0.6;transform:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1e2f3f;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+.header-actions{display:flex;gap:12px;margin-bottom:20px;align-items:center;}
+.header-actions h3{margin:0;flex:1;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -77,13 +80,16 @@ button:disabled{opacity:0.6;transform:none;}
             <input type="number" id="quantity" placeholder="Количество" min="1" value="1">
             <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
         </div>
-        <h3><i class="fas fa-history"></i> Заказы запчастей</h3>
+        <div class="header-actions">
+            <h3><i class="fas fa-history"></i> Заказы запчастей</h3>
+            <button onclick="forceLoadOrders()" style="width:auto;padding:8px 16px;margin:0;" class="refresh-btn"><i class="fas fa-sync-alt"></i> Показать запчасти</button>
+        </div>
         <div id="ordersList"></div>
     </div>
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE4IJpk--h--ISFlVksqcgm9gXINvFQ9fWrdjrKtN0JBHX9gHUtboVwBi2nDl6bUlhgg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQunP8C5tU8YhtVHKEZkgwSgX_2-7t65cB_eEUKRXCdNv90Y60Kd12SDm8YK-rvearQg/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -92,7 +98,6 @@ const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
-let isInitialized = false;
 
 function showToast(msg, isError) {
     const toast = document.createElement('div');
@@ -128,6 +133,23 @@ function callScriptAsync(functionName, data) {
     });
 }
 
+async function forceLoadOrders() {
+    const btn = document.querySelector('.refresh-btn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Загрузка...';
+    btn.disabled = true;
+    
+    try {
+        await loadOrders();
+        showToast('✅ Список заказов обновлён');
+    } catch(err) {
+        showToast(`❌ Ошибка: ${err.message}`, true);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
 async function loadOrders() {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -137,12 +159,13 @@ async function loadOrders() {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
-        console.log('Загружено заказов:', allOrders.length); // Для отладки
+        console.log('Загружено заказов:', allOrders.length);
+        console.log('Заказы:', allOrders);
         renderOrders(allOrders);
         return allOrders;
     } catch(err) {
         console.error('Ошибка загрузки:', err);
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;">Повторить</button></div>`;
+        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="forceLoadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         return [];
     }
 }
@@ -264,10 +287,11 @@ function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
     
-    if (!orders.length) {
+    if (!orders || orders.length === 0) {
         container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Добавьте первую позицию.</div>';
         return;
     }
+    
     container.innerHTML = '';
     orders.forEach(order => {
         const card = document.createElement('div'); 
@@ -430,8 +454,10 @@ function loginUser(user) {
     localStorage.setItem('userName', user.name);
     localStorage.setItem('userPic', user.picture);
     
-    // Важно: Загружаем заказы ПОСЛЕ того, как показали интерфейс
-    loadOrders();
+    // Автоматически загружаем заказы
+    setTimeout(() => {
+        loadOrders();
+    }, 500);
 }
 
 function parseJwt(token) {
@@ -457,6 +483,7 @@ window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
+window.forceLoadOrders = forceLoadOrders;
 
 // Инициализация при загрузке страницы
 window.addEventListener('load', async () => {
@@ -483,11 +510,11 @@ window.addEventListener('load', async () => {
         };
         
         try {
-            // Инициализируем API и проверяем доступ
+            // Инициализируем API
             await loadSheetsAPI();
             await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
             
-            // Проверяем email в таблице
+            // Проверяем доступ и загружаем заказы
             const resp = await gapi.client.sheets.spreadsheets.values.get({ 
                 spreadsheetId: AUTH_SPREADSHEET_ID, 
                 range: `${AUTH_SHEET_NAME}!A:C` 
@@ -505,12 +532,12 @@ window.addEventListener('load', async () => {
                 console.log('Доступ подтверждён, загружаем заказы...');
                 await loadOrders();
             } else {
-                console.log('Нет доступа, выходим...');
-                signOut();
+                console.log('Нет доступа');
+                showToast('❌ Нет доступа к таблице', true);
             }
         } catch(err) {
             console.error('Ошибка инициализации:', err);
-            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><button onclick="location.reload()" style="margin-top:15px;width:auto;padding:8px 20px;">Перезагрузить</button></div>`;
+            document.getElementById('ordersList').innerHTML = `<div class="empty-state">⚠️ Ошибка подключения: ${err.message}<br><br><button onclick="forceLoadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Показать запчасти</button></div>`;
         }
     } else {
         console.log('Нет сохранённой авторизации, показываем форму входа');
