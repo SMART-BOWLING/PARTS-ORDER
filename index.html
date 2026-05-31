@@ -3,72 +3,168 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>Блокнот заказов запчастей</title>
+<title>Блокнот заказов запчастей — Мультипозиции</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
-*{box-sizing:border-box;}
-body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#f4f6fa;color:#1a2f40;}
-.wrapper{max-width:800px;margin:0 auto;}
-.form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:20px;border:1px solid #eef2f6;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
-.form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#1a2f40;display:flex;align-items:center;gap:8px;border-left:4px solid #1a2f40;padding-left:12px;}
-/* Стили для строки с двумя полями ввода на одной строке */
-.double-row {
+/* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ (как в примере) ----- */
+:root {
+    --dark: #1a2f40;
+    --accent: #dc143c;
+    --light: #d7dce3;
+    --white: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+    background: var(--light);
+    padding: 30px;
+}
+
+/* обёртка контента (сохраняем оригинальные ширины) */
+.wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* ----- СТИЛИ ДЛЯ КАРТОЧКИ ФОРМЫ, ЗАГОЛОВКИ (как в исходнике) ----- */
+.form-card {
+    background: var(--white);
+    border-radius: 28px;
+    padding: 24px 22px;
+    margin-bottom: 24px;
+    border: 1px solid #eef2f6;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+}
+
+.form-title {
+    font-weight: 600;
+    font-size: 20px;
+    margin-bottom: 20px;
+    color: var(--dark);
     display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
     align-items: center;
+    gap: 10px;
+    border-left: 4px solid var(--dark);
+    padding-left: 14px;
 }
-.double-row .field-group {
-    flex: 1;
-}
-.double-row input, .double-row select {
+
+/* Стиль для выбора клуба (как в изначальном дизайне) */
+.club-select {
     width: 100%;
-    padding: 14px 16px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
     border: 1px solid #e2e8f0;
-    border-radius: 20px;
+    border-radius: 24px;
     font-size: 16px;
     background: #fff;
-    color: #1a2f40;
-    margin-bottom: 0; /* убираем стандартный отступ */
+    color: var(--dark);
+    font-weight: 500;
+    cursor: pointer;
 }
-.double-row input:focus, .double-row select:focus {
+.club-select:focus {
     outline: none;
-    border-color: #dc143c;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(220,20,60,0.1);
 }
-.remove-item-btn {
-    background: #ffffff;
-    border: 1px solid #dc143c;
-    color: #dc143c;
-    border-radius: 40px;
-    padding: 0 16px;
-    height: 52px;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: 0.2s;
+
+/* ----- НОВЫЙ СТИЛЬ ДЛЯ СТРОКИ (part-row) — точь-в-точь как в примере, но адаптируем под контейнер ----- */
+.part-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    white-space: nowrap;
+    gap: 12px;
+    max-width: 100%;
+    padding: 10px;
+    background: var(--white);
+    border: 1px solid var(--light);
+    border-radius: 18px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
 }
-.remove-item-btn:hover {
-    background: #dc143c;
-    color: white;
-    border-color: #dc143c;
+
+.field {
+    position: relative;
+    flex: 1;
 }
+
+.field i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7d8793;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.part-input,
+.qty-input {
+    height: 48px;
+    border: none;
+    outline: none;
+    background: #f5f6f8;
+    border-radius: 14px;
+    font-size: 16px;
+    color: var(--dark);
+    transition: .2s;
+}
+
+.part-input {
+    width: 100%;
+    padding: 0 16px 0 42px;
+}
+
+.qty-input {
+    width: 90px;
+    text-align: center;
+}
+
+.part-input:focus,
+.qty-input:focus {
+    background: var(--white);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+
+.delete-btn {
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 14px;
+    background: var(--accent);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: .2s;
+    flex-shrink: 0;
+}
+
+.delete-btn:hover {
+    opacity: 0.9;
+}
+.delete-btn:active {
+    transform: scale(.96);
+}
+
+/* Кнопка добавления позиции (стилизованная под пример и исходную кнопку) */
 .add-position-btn {
     background: #f0f2f5;
     border: 1px dashed #8a9bb0;
-    color: #1a2f40;
+    color: var(--dark);
     padding: 12px 16px;
     border-radius: 40px;
     font-size: 15px;
     font-weight: 500;
     width: 100%;
-    margin-top: 8px;
-    margin-bottom: 18px;
+    margin: 8px 0 18px 0;
     cursor: pointer;
     transition: 0.2s;
     display: flex;
@@ -78,19 +174,18 @@ body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Rob
 }
 .add-position-btn:hover {
     background: #e6e9ef;
-    border-color: #1a2f40;
+    border-color: var(--dark);
 }
-.items-list {
-    margin-bottom: 12px;
-}
+
+/* Группа кнопок (сохранить + обновить) */
 .button-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     margin-top: 8px;
 }
 .save-btn {
-    background: #1a2f40;
+    background: var(--dark);
     color: white;
     font-weight: 600;
     border: none;
@@ -100,11 +195,9 @@ body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Rob
     font-size: 16px;
     transition: 0.2s;
 }
-.save-btn:active {
-    transform: scale(0.98);
-}
+.save-btn:active { transform: scale(0.98); }
 .refresh-btn-under {
-    background: #1a2f40;
+    background: var(--dark);
     color: white;
     padding: 14px 16px;
     border-radius: 20px;
@@ -114,81 +207,233 @@ body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Rob
     border: none;
     width: 100%;
 }
-/* остальные стили из оригинала */
-input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:20px;font-size:16px;background:#fff;color:#1a2f40;}
-input:focus,select:focus{outline:none;border-color:#dc143c;box-shadow:0 0 0 3px rgba(220,20,60,0.1);}
-button:active{transform:scale(0.98);}
-button:disabled{opacity:0.6;transform:none;}
-.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;transition:all 0.3s ease;}
-.card.new-order{animation:highlightNew 0.8s ease;}
-@keyframes highlightNew{
-    0%{background:#fff; transform:scale(0.98); opacity:0.5;}
-    50%{background:#fff; transform:scale(1);}
-    100%{background:#ffffff; opacity:1;}
-}
-.order-table{width:100%;border-collapse:collapse;}
-.order-table tr{border-bottom:1px solid #f0f2f5;}
-.order-table tr:last-child{border-bottom:none;}
-.order-table td{padding:14px 16px;font-size:14px;vertical-align:top;}
-.order-table td:first-child{font-weight:500;color:#1a2f40;width:38%;background:#fefefe;}
-.order-table td:last-child{color:#1a2f40;text-align:right;word-break:break-word;}
-.status-select{padding:6px 12px;border-radius:20px;border:1px solid #e2e8f0;background:white;font-size:13px;font-weight:500;cursor:pointer;width:auto;margin:0;}
-.status-select.status-pending{color:#dc143c;border-color:#dc143c;background:#fff5f7;}
-.status-select.status-delivered{color:#1a2f40;border-color:#1a2f40;background:#f4f6fa;}
-.action-bar{display:flex;gap:12px;padding:12px 16px 18px;background:white;border-top:1px solid #edf2f7;justify-content:space-between;}
-.action-btn{flex:1;padding:10px 12px;border-radius:40px;font-size:14px;font-weight:500;text-align:center;cursor:pointer;border:none;}
-.delete-btn{background:white;color:#dc143c;border:1px solid #dc143c;width:100%; transition:0.2s;}
-.delete-btn:hover{background:#dc143c;color:white;}
-.empty-state{text-align:center;padding:48px 20px;background:white;border-radius:28px;color:#1a2f40;border:1px solid #eef2f6;}
-#login-section{display:flex;justify-content:center;align-items:center;min-height:500px;}
-#login-container{background:white;padding:40px 28px;border-radius:40px;text-align:center;max-width:400px;width:100%;border:1px solid #eef2f6;}
-#user-info{display:none;align-items:center;justify-content:space-between;background:white;padding:10px 20px;border-radius:60px;margin-bottom:24px;border:1px solid #eef2f6;}
-.user-details{display:flex;align-items:center;gap:12px;}
-#user-pic{width:42px;height:42px;border-radius:50%;object-fit:cover;}
-#logout-btn{width:auto;background:#f4f6fa;color:#1a2f40;padding:8px 18px;border-radius:40px;margin:0; border:1px solid #e2e8f0;}
 
-.toast{
-    position:fixed;
-    bottom:24px;
-    left:50%;
-    transform:translateX(-50%);
-    background:#1a2f40;
-    color:white;
-    padding:16px 32px;
-    font-size:15px;
-    font-weight:500;
-    z-index:1000;
-    animation:fadeUp 0.25s ease;
-    box-shadow:0 8px 20px rgba(0,0,0,0.2);
-    border-radius:0px !important;
-    text-align:center;
-    min-width:260px;
-    max-width:90vw;
-    line-height:1.4;
-    letter-spacing:0.3px;
+/* Стили для списка заказов (оставляем изначальные, но немного осовремениваем) */
+.card {
+    background: var(--white);
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid #eef2f6;
+    transition: all 0.3s ease;
 }
-.toast.error{
-    background:#dc143c;
+.card.new-order {
+    animation: highlightNew 0.8s ease;
 }
-@keyframes fadeUp{
-    from{opacity:0;transform:translateX(-50%) translateY(20px);}
-    to{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes highlightNew {
+    0% { background: #fff; transform: scale(0.98); opacity: 0.5; }
+    50% { background: #fff; transform: scale(1); }
+    100% { background: var(--white); opacity: 1; }
 }
-
-.loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1a2f40;animation:spin 0.7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
+.order-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.order-table tr {
+    border-bottom: 1px solid #f0f2f5;
+}
+.order-table tr:last-child {
+    border-bottom: none;
+}
+.order-table td {
+    padding: 14px 16px;
+    font-size: 14px;
+    vertical-align: top;
+}
+.order-table td:first-child {
+    font-weight: 500;
+    color: var(--dark);
+    width: 38%;
+    background: #fefefe;
+}
+.order-table td:last-child {
+    color: var(--dark);
+    text-align: right;
+    word-break: break-word;
+}
+.status-select {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    width: auto;
+    margin: 0;
+}
+.status-select.status-pending {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: #fff5f7;
+}
+.status-select.status-delivered {
+    color: var(--dark);
+    border-color: var(--dark);
+    background: #f4f6fa;
+}
+.action-bar {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px 18px;
+    background: white;
+    border-top: 1px solid #edf2f7;
+    justify-content: space-between;
+}
+.delete-order-btn {
+    background: white;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    width: 100%;
+    transition: 0.2s;
+    padding: 10px 12px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+}
+.delete-order-btn:hover {
+    background: var(--accent);
+    color: white;
+}
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    background: white;
+    border-radius: 28px;
+    color: var(--dark);
+    border: 1px solid #eef2f6;
+}
 .filter-search-container {
     display: none;
     transition: all 0.2s ease;
     margin-top: 4px;
     margin-bottom: 12px;
 }
-.filter-section{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
-.filter-group{flex:1;min-width:150px;}
-.filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;border-color:#e2e8f0;margin-bottom:0;}
-.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:16px;margin-bottom:0; margin-top:6px;}
+.filter-section {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+.filter-group {
+    flex: 1;
+    min-width: 150px;
+}
+.filter-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    background: #fff;
+    cursor: pointer;
+    border-color: #e2e8f0;
+    margin-bottom: 0;
+}
+.search-box {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 30px;
+    border: 1px solid #e2e8f0;
+    font-size: 16px;
+    margin-bottom: 0;
+    margin-top: 6px;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e2e8f0;
+    border-radius: 50%;
+    border-top-color: var(--dark);
+    animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dark);
+    color: white;
+    padding: 16px 32px;
+    font-size: 15px;
+    font-weight: 500;
+    z-index: 1000;
+    animation: fadeUp 0.25s ease;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    border-radius: 0px !important;
+    text-align: center;
+    min-width: 260px;
+    max-width: 90vw;
+    line-height: 1.4;
+}
+.toast.error {
+    background: var(--accent);
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+#login-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 500px;
+}
+#login-container {
+    background: white;
+    padding: 40px 28px;
+    border-radius: 40px;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    border: 1px solid #eef2f6;
+}
+#user-info {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 10px 20px;
+    border-radius: 60px;
+    margin-bottom: 24px;
+    border: 1px solid #eef2f6;
+}
+.user-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#user-pic {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+#logout-btn {
+    width: auto;
+    background: #f4f6fa;
+    color: var(--dark);
+    padding: 8px 18px;
+    border-radius: 40px;
+    margin: 0;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+}
+@media (max-width: 600px) {
+    body { padding: 15px; }
+    .part-row { gap: 8px; }
+    .qty-input { width: 70px; }
+    .field i { left: 12px; }
+    .part-input { padding-left: 36px; }
+    .form-card { padding: 16px; }
+}
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <div class="wrapper">
@@ -211,17 +456,17 @@ button:disabled{opacity:0.6;transform:none;}
     <div id="main-content" style="display:none;">
         <div class="form-card">
             <div class="form-title"><i class="fas fa-pen-alt"></i> Новый заказ запчастей</div>
-            <select id="clubSelect">
+            <select id="clubSelect" class="club-select">
                 <option value="" disabled selected>— Выберите боулинг-клуб —</option>
                 <option value="BLOCKBUSTER">BLOCKBUSTER</option>
                 <option value="SKYMALL">SKYMALL</option>
                 <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
             </select>
             
-            <!-- Контейнер для динамических строк (номер детали + количество) -->
+            <!-- Контейнер для динамических строк (part-row) — теперь используется стиль part-row из эталона -->
             <div id="itemsContainer" class="items-list"></div>
             
-            <!-- Кнопка добавления новой позиции -->
+            <!-- Кнопка добавления позиции -->
             <button type="button" id="addItemBtn" class="add-position-btn"><i class="fas fa-plus-circle"></i> Добавить позицию</button>
             
             <div class="button-group">
@@ -232,21 +477,8 @@ button:disabled{opacity:0.6;transform:none;}
         
         <div id="filterSearchBlock" class="filter-search-container">
             <div class="filter-section">
-                <div class="filter-group">
-                    <select id="statusFilter">
-                        <option value="all">Все заказы</option>
-                        <option value="active">Активные</option>
-                        <option value="delivered">Доставленные</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <select id="clubFilter">
-                        <option value="all">Все клубы</option>
-                        <option value="BLOCKBUSTER">BLOCKBUSTER</option>
-                        <option value="SKYMALL">SKYMALL</option>
-                        <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
-                    </select>
-                </div>
+                <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные</option><option value="delivered">Доставленные</option></select></div>
+                <div class="filter-group"><select id="clubFilter"><option value="all">Все клубы</option><option value="BLOCKBUSTER">BLOCKBUSTER</option><option value="SKYMALL">SKYMALL</option><option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option></select></div>
             </div>
             <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу" onkeyup="applyFilters()">
         </div>
@@ -256,6 +488,7 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 
 <script>
+// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS (сохранён оригинальный функционал) -----
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa5IaKN__SXP6WDen5VXxfsHILUpz6Bk2IyuMOlBVLa6SKUR7eEjw2Sjj7Nm6_M4eTgg/exec';
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -265,74 +498,71 @@ let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
-let isFirstLoadCompleted = false;
 
-// ---- Множественные позиции: управление списком ----
-let itemCounter = 0; // для уникальных id строк
-let currentItems = []; // храним объекты {id, partNumber, quantity}
+// ---- Управление динамическими позициями (part-row style) ----
+let itemCounter = 0;
+let currentItems = []; // { id, partNumber, quantity }
 
 function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
-    
     if (currentItems.length === 0) {
-        // Если нет позиций — показываем заглушку, но по умолчанию создадим одну при инициализации
+        // Если нет позиций — показываем подсказку, но по умолчанию будет одна пустая строка при инициализации
         container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px; font-size:14px;">Нет позиций, нажмите "Добавить позицию"</div>';
         return;
     }
-    
     container.innerHTML = '';
     currentItems.forEach((item, idx) => {
+        // Создаём структуру .part-row в точности из эталонного кода
         const rowDiv = document.createElement('div');
-        rowDiv.className = 'double-row';
+        rowDiv.className = 'part-row';
         rowDiv.dataset.id = item.id;
         
-        // Поле номер детали
-        const partGroup = document.createElement('div');
-        partGroup.className = 'field-group';
+        // Левое поле (с иконкой)
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'field';
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-barcode';
         const partInput = document.createElement('input');
         partInput.type = 'text';
-        partInput.placeholder = 'Номер детали';
+        partInput.className = 'part-input';
+        partInput.placeholder = '000-000-000';
         partInput.value = item.partNumber;
         partInput.autocomplete = 'off';
         partInput.addEventListener('input', (e) => { item.partNumber = e.target.value; });
-        partGroup.appendChild(partInput);
+        fieldDiv.appendChild(icon);
+        fieldDiv.appendChild(partInput);
         
-        // Поле количество
-        const qtyGroup = document.createElement('div');
-        qtyGroup.className = 'field-group';
+        // Поле количества
         const qtyInput = document.createElement('input');
         qtyInput.type = 'number';
-        qtyInput.placeholder = 'Количество';
+        qtyInput.className = 'qty-input';
+        qtyInput.placeholder = 'Qty';
         qtyInput.min = 1;
         qtyInput.value = item.quantity;
-        qtyInput.addEventListener('input', (e) => { 
+        qtyInput.addEventListener('input', (e) => {
             let val = parseInt(e.target.value);
             item.quantity = (isNaN(val) || val < 1) ? 1 : val;
             qtyInput.value = item.quantity;
         });
-        qtyGroup.appendChild(qtyInput);
         
-        rowDiv.appendChild(partGroup);
-        rowDiv.appendChild(qtyGroup);
-        
-        // Кнопка удаления только если позиций больше 1, иначе не удаляем последнюю
-        if (currentItems.length > 1) {
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'remove-item-btn';
-            removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-            removeBtn.title = 'Удалить позицию';
-            removeBtn.onclick = () => removeItem(item.id);
-            rowDiv.appendChild(removeBtn);
+        // Кнопка удаления (стиль .delete-btn)
+        const delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.title = 'Удалить позицию';
+        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        // Если осталась последняя позиция, не даём удалить — пользователь должен либо заполнить, либо добавить новые
+        if (currentItems.length === 1) {
+            delBtn.style.opacity = '0.5';
+            delBtn.style.cursor = 'not-allowed';
+            delBtn.disabled = true;
         } else {
-            // Для единственной позиции можно оставить пустой placeholder, чтобы сохранить выравнивание
-            const spacer = document.createElement('div');
-            spacer.style.width = '52px';
-            spacer.style.flexShrink = '0';
-            rowDiv.appendChild(spacer);
+            delBtn.onclick = () => removeItem(item.id);
         }
         
+        rowDiv.appendChild(fieldDiv);
+        rowDiv.appendChild(qtyInput);
+        rowDiv.appendChild(delBtn);
         container.appendChild(rowDiv);
     });
 }
@@ -362,36 +592,35 @@ function removeItem(id) {
 function resetItemsToDefault() {
     currentItems = [];
     itemCounter = 0;
-    // Добавляем одну пустую позицию
-    addNewItem();
+    addNewItem(); // одна пустая строка
 }
 
-// Валидация всех позиций перед отправкой
 function validateItems() {
     if (currentItems.length === 0) {
         showToast('Добавьте хотя бы одну позицию (деталь)', true);
         return false;
     }
     let hasValid = false;
-    for (let i = 0; i < currentItems.length; i++) {
+    for (let i=0; i<currentItems.length; i++) {
         const it = currentItems[i];
-        if (it.partNumber && it.partNumber.trim() !== '' && (!isNaN(it.quantity) && it.quantity > 0)) {
-            hasValid = true;
-        } else if (it.partNumber && it.partNumber.trim() !== '') {
-            showToast(`Позиция ${i+1}: укажите корректное количество (>0)`, true);
-            return false;
-        } else if (it.quantity && it.quantity > 0) {
-            showToast(`Позиция ${i+1}: введите номер детали`, true);
-            return false;
-        }
+        const partOk = it.partNumber && it.partNumber.trim() !== '';
+        const qtyOk = !isNaN(it.quantity) && it.quantity > 0;
+        if (partOk && qtyOk) hasValid = true;
+        else if (partOk && !qtyOk) { showToast(`Позиция ${i+1}: укажите корректное количество`, true); return false; }
+        else if (qtyOk && !partOk) { showToast(`Позиция ${i+1}: введите номер детали`, true); return false; }
     }
-    if (!hasValid) {
-        showToast('Заполните номер детали и количество хотя бы в одной позиции', true);
-        return false;
-    }
+    if (!hasValid) { showToast('Заполните номер детали и количество хотя бы в одной позиции', true); return false; }
     return true;
 }
 
+// ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (toast, дата) -----
+function showToast(msgHtml, isError = false) {
+    const toast = document.createElement('div');
+    toast.className = 'toast' + (isError ? ' error' : '');
+    toast.innerHTML = msgHtml;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -402,34 +631,16 @@ function formatDateTime(date) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
 }
-
 function parseTimestamp(timestamp) {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === 'string') {
-        let date = new Date(timestamp);
-        if (!isNaN(date)) return date;
-        if (!isNaN(parseFloat(timestamp))) {
-            const serial = parseFloat(timestamp);
-            const dateFromSerial = new Date((serial - 25569) * 86400000);
-            if (!isNaN(dateFromSerial)) return dateFromSerial;
-        }
-    }
-    if (typeof timestamp === 'number') {
-        let date = new Date(timestamp);
-        if (!isNaN(date)) return date;
-    }
+    if (typeof timestamp === 'string') { let date = new Date(timestamp); if (!isNaN(date)) return date; }
+    if (typeof timestamp === 'number') { let date = new Date(timestamp); if (!isNaN(date)) return date; }
     return null;
 }
+function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
-function showToast(msgHtml, isError = false) {
-    const toast = document.createElement('div');
-    toast.className = 'toast' + (isError ? ' error' : '');
-    toast.innerHTML = msgHtml;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
+// ----- ВЫЗОВЫ GOOGLE SCRIPT -----
 function callScriptAsync(functionName, data) {
     return new Promise((resolve, reject) => {
         const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
@@ -446,431 +657,155 @@ function callScriptAsync(functionName, data) {
         script.src = `${SCRIPT_URL}?${params.toString()}`;
         script.onerror = () => { delete window[callbackName]; reject(new Error('Сетевая ошибка')); };
         document.body.appendChild(script);
-        setTimeout(() => {
-            if (window[callbackName]) {
-                delete window[callbackName];
-                reject(new Error('Таймаут запроса'));
-            }
-        }, 25000);
+        setTimeout(() => { if (window[callbackName]) { delete window[callbackName]; reject(new Error('Таймаут запроса')); } }, 25000);
     });
-}
-
-function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const clubFilter = document.getElementById('clubFilter').value;
-    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-    
-    let filteredOrders = [...allOrders];
-    
-    if (statusFilter === 'active') {
-        filteredOrders = filteredOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
-    } else if (statusFilter === 'delivered') {
-        filteredOrders = filteredOrders.filter(order => order.status === 'Доставлено');
-    }
-    
-    if (clubFilter !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.club === clubFilter);
-    }
-    
-    if (searchQuery) {
-        filteredOrders = filteredOrders.filter(order => 
-            (order.partNumber && order.partNumber.toLowerCase().includes(searchQuery)) ||
-            (order.club && order.club.toLowerCase().includes(searchQuery))
-        );
-    }
-    
-    filteredOrders.sort((a, b) => {
-        const dateA = a.timestampObj || (a.timestamp ? parseTimestamp(a.timestamp) : 0);
-        const dateB = b.timestampObj || (b.timestamp ? parseTimestamp(b.timestamp) : 0);
-        const timeA = dateA instanceof Date ? dateA.getTime() : 0;
-        const timeB = dateB instanceof Date ? dateB.getTime() : 0;
-        return timeB - timeA;
-    });
-    
-    renderOrders(filteredOrders);
 }
 
 async function loadOrders(showLoading = true, highlightNewId = null) {
     if (isLoading) return;
     isLoading = true;
-    
     const container = document.getElementById('ordersList');
     const filterBlock = document.getElementById('filterSearchBlock');
-    
     if (filterBlock) filterBlock.style.display = 'none';
-    
-    if (container && showLoading) {
-        container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
-    }
-    
+    if (container && showLoading) container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
-        
-        allOrders.forEach(order => {
-            if (order.timestamp) {
-                order.timestampObj = parseTimestamp(order.timestamp);
-            } else {
-                order.timestampObj = null;
-            }
-        });
-        
-        allOrders.sort((a, b) => {
-            const timeA = a.timestampObj instanceof Date ? a.timestampObj.getTime() : 0;
-            const timeB = b.timestampObj instanceof Date ? b.timestampObj.getTime() : 0;
-            return timeB - timeA;
-        });
-        
+        allOrders.forEach(order => { if (order.timestamp) order.timestampObj = parseTimestamp(order.timestamp); else order.timestampObj = null; });
+        allOrders.sort((a,b) => (b.timestampObj?.getTime() || 0) - (a.timestampObj?.getTime() || 0));
         applyFilters();
-        
-        if (filterBlock) {
-            filterBlock.style.display = 'block';
-        }
-        isFirstLoadCompleted = true;
-        
-        if (highlightNewId) {
-            setTimeout(() => {
-                const newCard = document.querySelector(`.card[data-row="${highlightNewId}"]`);
-                if (newCard) {
-                    newCard.classList.add('new-order');
-                    setTimeout(() => newCard.classList.remove('new-order'), 1000);
-                    newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 100);
-        }
-        
-        if (allOrders.length === 0 && container) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
-        }
+        if (filterBlock) filterBlock.style.display = 'block';
+        if (highlightNewId) setTimeout(() => { const newCard = document.querySelector(`.card[data-row="${highlightNewId}"]`); if (newCard) { newCard.classList.add('new-order'); setTimeout(() => newCard.classList.remove('new-order'), 1000); newCard.scrollIntoView({ behavior:'smooth', block:'center' }); } }, 100);
         showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов`);
-        return allOrders;
     } catch(err) {
-        console.error('Ошибка загрузки:', err);
-        if (container) {
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> Ошибка: ${escapeHtml(err.message)}<br><br>
-            <button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px; background:#1a2f40; color:white; border:none; border-radius:40px;">
-            <i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
-        }
+        console.error(err);
+        if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="manualRefresh()" style="margin-top:15px;background:#1a2f40;color:white;border:none;border-radius:40px;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         if (filterBlock) filterBlock.style.display = 'none';
-        showToast(`<i class="fas fa-times-circle"></i> Ошибка загрузки: ${err.message}`, true);
-        return [];
-    } finally {
-        isLoading = false;
-    }
+        showToast(`Ошибка загрузки: ${err.message}`, true);
+    } finally { isLoading = false; }
 }
+async function manualRefresh() { await loadOrders(true); }
 
-async function manualRefresh() {
-    await loadOrders(true);
-}
-
-// Изменённый saveOrder: сохраняем каждую позицию отдельно (или можно одной группой, но логика остаётся)
+// ----- СОХРАНЕНИЕ ВСЕХ ПОЗИЦИЙ (каждая позиция — отдельной строкой в таблице) -----
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
-    if (!club) { showToast('<i class="fas fa-exclamation-circle"></i> Выберите клуб', true); return; }
+    if (!club) { showToast('Выберите боулинг-клуб', true); return; }
     if (!validateItems()) return;
-    
-    // Собираем все валидные позиции
     const itemsToSave = [];
     for (const item of currentItems) {
         if (item.partNumber && item.partNumber.trim() !== '' && (!isNaN(item.quantity) && item.quantity > 0)) {
-            itemsToSave.push({
-                partNumber: item.partNumber.trim(),
-                quantity: item.quantity
-            });
+            itemsToSave.push({ partNumber: item.partNumber.trim(), quantity: item.quantity });
         }
     }
-    if (itemsToSave.length === 0) {
-        showToast('Нет заполненных позиций для сохранения', true);
-        return;
-    }
-    
+    if (itemsToSave.length === 0) { showToast('Нет заполненных позиций для сохранения', true); return; }
     const btn = document.getElementById('saveOrderBtn');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Сохранение...';
     btn.disabled = true;
-    
     try {
         const now = new Date();
         const timestampISO = now.toISOString();
-        let savedCount = 0;
         let lastRowId = null;
-        // Последовательно сохраняем каждую позицию (чтобы все были под одним временем, клубом и т.д.)
-        for (const item of itemsToSave) {
-            const result = await callScriptAsync('addOrder', { 
-                partNumber: item.partNumber, 
-                quantity: item.quantity, 
-                club: club,
-                timestamp: timestampISO
-            });
+        for (const it of itemsToSave) {
+            const result = await callScriptAsync('addOrder', { partNumber: it.partNumber, quantity: it.quantity, club: club, timestamp: timestampISO });
             if (result && result.error) throw new Error(result.error);
-            savedCount++;
             if (result && result.row) lastRowId = result.row;
         }
-        const timeStr = formatDateTime(now);
-        showToast(`<i class="fas fa-check-circle"></i> Сохранено ${savedCount} позиций для ${club}<br>Время: ${timeStr}`);
-        
-        // Очищаем форму (сбрасываем список позиций до одной пустой)
+        showToast(`<i class="fas fa-check-circle"></i> Сохранено ${itemsToSave.length} позиций для ${club}<br>${formatDateTime(now)}`);
         resetItemsToDefault();
         document.getElementById('clubSelect').value = '';
-        
         await loadOrders(true, lastRowId);
-        
-    } catch(err) {
-        showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
+    } catch(err) { showToast(`Ошибка: ${err.message}`, true); }
+    finally { btn.innerHTML = originalText; btn.disabled = false; }
 }
 
 async function updateStatus(row, newStatus, selectElement) {
     if (!selectElement) return;
     const originalValue = selectElement.value;
-    selectElement.disabled = true;
-    selectElement.style.opacity = '0.6';
-    
+    selectElement.disabled = true; selectElement.style.opacity = '0.6';
     try {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
-        
-        const orderIndex = allOrders.findIndex(order => order.row == row);
-        if (orderIndex !== -1) {
-            allOrders[orderIndex].status = newStatus;
-        }
+        const idx = allOrders.findIndex(o => o.row == row);
+        if (idx !== -1) allOrders[idx].status = newStatus;
         applyFilters();
-        showToast(`<i class="fas fa-check-circle"></i> Статус изменён на "${newStatus}"`);
-    } catch(err) {
-        showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
-        selectElement.value = originalValue;
-    } finally {
-        selectElement.disabled = false;
-        selectElement.style.opacity = '1';
-    }
+        showToast(`Статус изменён на "${newStatus}"`);
+    } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectElement.value = originalValue; }
+    finally { selectElement.disabled = false; selectElement.style.opacity = '1'; }
 }
-
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
     const card = cardElement.closest('.card');
-    if (card) {
-        card.style.opacity = '0.5';
-        card.style.pointerEvents = 'none';
-    }
+    if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
     try {
-        const result = await callScriptAsync('deleteOrder', { row });
-        if (result && result.error) throw new Error(result.error);
-        const orderIndex = allOrders.findIndex(order => order.row == row);
-        if (orderIndex !== -1) {
-            allOrders.splice(orderIndex, 1);
-        }
+        await callScriptAsync('deleteOrder', { row });
+        const idx = allOrders.findIndex(o => o.row == row);
+        if (idx !== -1) allOrders.splice(idx,1);
         applyFilters();
-        showToast('<i class="fas fa-trash-alt"></i> Заказ удалён');
-    } catch(err) {
-        showToast(`<i class="fas fa-times-circle"></i> Ошибка: ${err.message}`, true);
-        if (card) {
-            card.style.opacity = '1';
-            card.style.pointerEvents = 'auto';
-        }
-    }
+        showToast('Заказ удалён');
+    } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
-
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const clubFilter = document.getElementById('clubFilter').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    let filtered = [...allOrders];
+    if (statusFilter === 'active') filtered = filtered.filter(o => o.status !== 'Доставлено');
+    else if (statusFilter === 'delivered') filtered = filtered.filter(o => o.status === 'Доставлено');
+    if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
+    if (search) filtered = filtered.filter(o => (o.partNumber && o.partNumber.toLowerCase().includes(search)) || (o.club && o.club.toLowerCase().includes(search)));
+    filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
+    renderOrders(filtered);
+}
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    
-    if (!orders || orders.length === 0) {
-        const statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : 'all';
-        let message = '';
-        if (statusFilter === 'active') message = 'Нет активных заказов';
-        else if (statusFilter === 'delivered') message = 'Нет доставленных заказов';
-        else message = 'Нет заказов';
-        container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> ${message}.</div>`;
-        return;
-    }
-    
+    if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов.</div>'; return; }
     container.innerHTML = '';
     orders.forEach(order => {
-        const card = document.createElement('div'); 
-        card.className = 'card';
-        card.setAttribute('data-row', order.row);
-        
+        const card = document.createElement('div'); card.className = 'card'; card.setAttribute('data-row', order.row);
         let dateStr = '—';
-        if (order.timestamp) {
-            const date = parseTimestamp(order.timestamp);
-            if (date && date instanceof Date && !isNaN(date)) {
-                dateStr = formatDateTime(date);
-            }
-        }
-        
-        const table = document.createElement('table'); 
-        table.className = 'order-table';
-        const currentStatus = order.status || 'Активно';
-        
-        const rows = [
-            { label: 'Номер детали', value: order.partNumber || '—' },
-            { label: 'Количество', value: `${order.quantity} шт.` },
-            { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата и время', value: dateStr }
+        if (order.timestamp) { const d = parseTimestamp(order.timestamp); if (d && !isNaN(d)) dateStr = formatDateTime(d); }
+        const table = document.createElement('table'); table.className = 'order-table';
+        const fields = [
+            { label:'Номер детали', value: order.partNumber || '—' },
+            { label:'Количество', value: `${order.quantity} шт.` },
+            { label:'Боулинг-клуб', value: order.club || '—' },
+            { label:'Дата и время', value: dateStr }
         ];
-        
-        rows.forEach(r => {
-            const tr = document.createElement('tr');
-            const tdL = document.createElement('td'); 
-            tdL.textContent = r.label;
-            const tdV = document.createElement('td');
-            tdV.textContent = r.value;
-            tr.appendChild(tdL); 
-            tr.appendChild(tdV);
-            table.appendChild(tr);
-        });
-        
+        fields.forEach(f => { const tr = document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=f.label; const td2=document.createElement('td'); td2.textContent=f.value; tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr); });
         const statusTr = document.createElement('tr');
-        const statusTdL = document.createElement('td');
-        statusTdL.textContent = 'Статус';
+        const statusTdL = document.createElement('td'); statusTdL.textContent='Статус';
         const statusTdV = document.createElement('td');
-        
-        const select = document.createElement('select');
-        select.className = `status-select ${currentStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
-        select.innerHTML = `
-            <option value="Активно" ${currentStatus === 'Активно' ? 'selected' : ''}>Активно</option>
-            <option value="Доставлено" ${currentStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>
-        `;
-        select.onchange = (e) => {
-            e.stopPropagation();
-            updateStatus(order.row, select.value, select);
-        };
-        
-        statusTdV.appendChild(select);
-        statusTr.appendChild(statusTdL);
-        statusTr.appendChild(statusTdV);
-        table.appendChild(statusTr);
-        
+        const curStatus = order.status || 'Активно';
+        const select = document.createElement('select'); select.className=`status-select ${curStatus==='Доставлено'?'status-delivered':'status-pending'}`;
+        select.innerHTML = `<option value="Активно" ${curStatus==='Активно'?'selected':''}>Активно</option><option value="Доставлено" ${curStatus==='Доставлено'?'selected':''}>Доставлено</option>`;
+        select.onchange = (e) => updateStatus(order.row, select.value, select);
+        statusTdV.appendChild(select); statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV); table.appendChild(statusTr);
         card.appendChild(table);
-        
-        const actionDiv = document.createElement('div'); 
-        actionDiv.className = 'action-bar';
-        const deleteBtn = document.createElement('button'); 
-        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить'; 
-        deleteBtn.className = 'action-btn delete-btn';
-        deleteBtn.onclick = () => deleteOrder(order.row, card);
-        actionDiv.appendChild(deleteBtn);
-        card.appendChild(actionDiv);
+        const actionDiv = document.createElement('div'); actionDiv.className='action-bar';
+        const delOrderBtn = document.createElement('button'); delOrderBtn.innerHTML='<i class="fas fa-trash-alt"></i> Удалить'; delOrderBtn.className='delete-order-btn'; delOrderBtn.onclick = () => deleteOrder(order.row, card);
+        actionDiv.appendChild(delOrderBtn); card.appendChild(actionDiv);
         container.appendChild(card);
     });
 }
-
-function escapeHtml(str) { 
-    if(!str) return ''; 
-    return String(str).replace(/[&<>]/g, function(m){
-        if(m==='&') return '&amp;'; 
-        if(m==='<') return '&lt;'; 
-        if(m==='>') return '&gt;'; 
-        return m;
-    }); 
-}
-
-function loadSheetsAPI() { 
-    return new Promise((resolve, reject) => { 
-        gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); 
-    }); 
-}
-
-function handleCredentialResponse(response) {
-    try {
-        const payload = parseJwt(response.credential);
-        currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture };
-        showLoadingAuth(true);
-        initAndCheckEmail();
-    } catch(e) { 
-        showLoadingAuth(false); 
-        alert('Ошибка входа'); 
-    }
-}
-
-function showLoadingAuth(show) { /* для краткости оставлен оригинал */ 
-    const container = document.getElementById('login-container');
-    if (show && container) {
-        if (!container.hasAttribute('data-original')) container.setAttribute('data-original', container.innerHTML);
-        container.innerHTML = '<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>';
-    } else if (container && container.getAttribute('data-original')) {
-        container.innerHTML = container.getAttribute('data-original');
-        if (window.google?.accounts?.id) {
-            google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
-        }
-    }
-}
-
-async function initAndCheckEmail() {
-    try {
-        await loadSheetsAPI();
-        await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
-        await checkEmailAndSiteInSheet(currentUser.email);
-    } catch(err) { 
-        showLoadingAuth(false); 
-        alert('Ошибка API: ' + err.message); 
-    }
-}
-
-async function checkEmailAndSiteInSheet(email) {
-    try {
-        const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` });
-        const rows = resp.result.values || [];
-        let hasAccess = false, foundName = null;
-        for (let row of rows) {
-            if (!row[0]) continue;
-            if (row[0].toLowerCase().trim() === email) { hasAccess = true; if(row[1]) foundName = row[1]; break; }
-        }
-        if (hasAccess) {
-            currentUserNameFromSheet = foundName || currentUser.name;
-            loginUser(currentUser);
-        } else { showLoadingAuth(false); alert('Нет доступа! Ваш email не авторизован.'); }
-    } catch(e) { showLoadingAuth(false); alert('Ошибка проверки таблицы: ' + e.message); }
-}
-
-async function loginUser(user) {
-    document.getElementById('login-section').style.display = 'none';
-    document.getElementById('user-info').style.display = 'flex';
-    document.getElementById('main-content').style.display = 'block';
-    document.getElementById('user-pic').src = user.picture;
-    document.getElementById('user-name').innerText = currentUserNameFromSheet || user.name;
-    document.getElementById('user-email').innerText = user.email;
-    
-    localStorage.setItem('userLoggedIn', 'true');
-    localStorage.setItem('userEmail', user.email);
-    localStorage.setItem('userName', user.name);
-    localStorage.setItem('userPic', user.picture);
-    
-    await loadOrders(true);
-}
-
-function parseJwt(token) {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/');
-        return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-    } catch(e){ return {}; }
-}
-
+// ----- АВТОРИЗАЦИЯ (оригинал) -----
+function loadSheetsAPI() { return new Promise((resolve, reject) => { gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); }); }
+function handleCredentialResponse(response) { try { const payload = parseJwt(response.credential); currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture }; showLoadingAuth(true); initAndCheckEmail(); } catch(e) { showLoadingAuth(false); alert('Ошибка входа'); } }
+function showLoadingAuth(show) { const c = document.getElementById('login-container'); if(show && c){ if(!c.hasAttribute('data-original')) c.setAttribute('data-original',c.innerHTML); c.innerHTML='<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>'; } else if(c && c.getAttribute('data-original')){ c.innerHTML=c.getAttribute('data-original'); if(window.google?.accounts?.id) google.accounts.id.renderButton(document.querySelector('.g_id_signin'),{ type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' }); } }
+async function initAndCheckEmail() { try { await loadSheetsAPI(); await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] }); await checkEmailAndSiteInSheet(currentUser.email); } catch(err) { showLoadingAuth(false); alert('Ошибка API: '+err.message); } }
+async function checkEmailAndSiteInSheet(email) { try { const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` }); const rows = resp.result.values || []; let hasAccess=false, foundName=null; for(let row of rows) if(row[0] && row[0].toLowerCase().trim()===email){ hasAccess=true; if(row[1]) foundName=row[1]; break; } if(hasAccess){ currentUserNameFromSheet = foundName || currentUser.name; loginUser(currentUser); } else { showLoadingAuth(false); alert('Нет доступа! Ваш email не авторизован.'); } } catch(e){ showLoadingAuth(false); alert('Ошибка таблицы: '+e.message); } }
+async function loginUser(user) { document.getElementById('login-section').style.display='none'; document.getElementById('user-info').style.display='flex'; document.getElementById('main-content').style.display='block'; document.getElementById('user-pic').src=user.picture; document.getElementById('user-name').innerText=currentUserNameFromSheet||user.name; document.getElementById('user-email').innerText=user.email; localStorage.setItem('userLoggedIn','true'); localStorage.setItem('userEmail',user.email); localStorage.setItem('userName',user.name); localStorage.setItem('userPic',user.picture); await loadOrders(true); }
+function parseJwt(token) { try { const base64Url = token.split('.')[1]; const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); } catch(e){ return {}; } }
 function signOut() { localStorage.clear(); if(google?.accounts?.id) google.accounts.id.disableAutoSelect(); location.reload(); }
-
-// Глобальные функции
-window.saveOrder = saveOrder;
-window.updateStatus = updateStatus;
-window.deleteOrder = deleteOrder;
-window.signOut = signOut;
-window.handleCredentialResponse = handleCredentialResponse;
-window.loadOrders = loadOrders;
-window.applyFilters = applyFilters;
-window.manualRefresh = manualRefresh;
+window.saveOrder = saveOrder; window.updateStatus = updateStatus; window.deleteOrder = deleteOrder; window.signOut = signOut; window.handleCredentialResponse = handleCredentialResponse; window.loadOrders = loadOrders; window.applyFilters = applyFilters; window.manualRefresh = manualRefresh;
 
 window.addEventListener('load', async () => {
-    // Инициализация динамических позиций
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
-    
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
-    
     if (logged && savedEmail) {
         document.getElementById('login-section').style.display = 'none';
         document.getElementById('user-info').style.display = 'flex';
@@ -880,30 +815,20 @@ window.addEventListener('load', async () => {
         document.getElementById('user-email').innerText = savedEmail;
         currentUser = { email: savedEmail, name: localStorage.getItem('userName'), picture: localStorage.getItem('userPic') };
         try {
-            await loadSheetsAPI();
-            await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+            await loadSheetsAPI(); await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
             const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` });
-            const rows = resp.result.values || [];
-            let hasAccess = false;
-            for (let row of rows) if (row[0] && row[0].toLowerCase().trim() === savedEmail.toLowerCase().trim()) { hasAccess = true; break; }
-            if (hasAccess) { document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>'; await loadOrders(true); }
-            else { showToast('<i class="fas fa-ban"></i> Нет доступа к таблице', true); document.getElementById('ordersList').innerHTML = '<div class="empty-state"><i class="fas fa-ban"></i> Нет доступа к таблице</div>'; }
-        } catch(err) { console.error(err); document.getElementById('ordersList').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> Ошибка подключения: ${err.message}<br><br><button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px; background:#1a2f40; color:white; border:none; border-radius:40px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`; }
+            let hasAccess = false; for(let row of resp.result.values||[]) if(row[0] && row[0].toLowerCase().trim()===savedEmail.toLowerCase().trim()){ hasAccess=true; break; }
+            if(hasAccess){ document.getElementById('ordersList').innerHTML='<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>'; await loadOrders(true); } else { showToast('Нет доступа к таблице',true); document.getElementById('ordersList').innerHTML='<div class="empty-state"><i class="fas fa-ban"></i> Нет доступа</div>'; }
+        } catch(err){ document.getElementById('ordersList').innerHTML=`<div class="empty-state">Ошибка: ${escapeHtml(err.message)}<br><button onclick="manualRefresh()" style="margin-top:15px;">Обновить</button></div>`; }
     } else {
         document.getElementById('login-section').style.display = 'flex';
-        if (google?.accounts?.id) {
-            google.accounts.id.initialize({ client_id: '328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', callback: handleCredentialResponse });
-            google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
-        }
+        if(google?.accounts?.id){ google.accounts.id.initialize({ client_id:'328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', callback:handleCredentialResponse }); google.accounts.id.renderButton(document.querySelector('.g_id_signin'),{ type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' }); }
     }
 });
 document.addEventListener('DOMContentLoaded', () => {
-    const statusFilter = document.getElementById('statusFilter');
-    const clubFilter = document.getElementById('clubFilter');
-    const searchInput = document.getElementById('searchInput');
-    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-    if (clubFilter) clubFilter.addEventListener('change', applyFilters);
-    if (searchInput) searchInput.addEventListener('keyup', applyFilters);
+    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('clubFilter')?.addEventListener('change', applyFilters);
+    document.getElementById('searchInput')?.addEventListener('keyup', applyFilters);
 });
 </script>
 </body>
