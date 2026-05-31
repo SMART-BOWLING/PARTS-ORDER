@@ -131,6 +131,7 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
+// Функция форматирования даты и времени
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -140,6 +141,39 @@ function formatDateTime(date) {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
+}
+
+// Функция для безопасного парсинга даты из разных форматов
+function parseTimestamp(timestamp) {
+    if (!timestamp) return null;
+    
+    // Если это уже объект Date, возвращаем его
+    if (timestamp instanceof Date) return timestamp;
+    
+    // Пробуем разные варианты
+    let date = null;
+    
+    // 1. Пробуем ISO строку
+    if (typeof timestamp === 'string') {
+        date = new Date(timestamp);
+        if (!isNaN(date)) return date;
+        
+        // 2. Пробуем формат из Google Sheets (серийный номер)
+        if (!isNaN(parseFloat(timestamp))) {
+            const serial = parseFloat(timestamp);
+            // Excel/Google Sheets serial date (дни с 30.12.1899)
+            const dateFromSerial = new Date((serial - 25569) * 86400000);
+            if (!isNaN(dateFromSerial)) return dateFromSerial;
+        }
+    }
+    
+    // 3. Если это число (миллисекунды)
+    if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+        if (!isNaN(date)) return date;
+    }
+    
+    return null;
 }
 
 function showToast(msgHtml, isError = false) {
@@ -199,11 +233,13 @@ function applyFilters() {
         );
     }
     
-    // 🔄 СОРТИРОВКА: сначала новые (по дате, самые свежие сверху)
+    // Сортировка: сначала новые (по дате, самые свежие сверху)
     filteredOrders.sort((a, b) => {
-        const dateA = a.timestamp ? new Date(a.timestamp) : 0;
-        const dateB = b.timestamp ? new Date(b.timestamp) : 0;
-        return dateB - dateA; // по убыванию (новые сверху)
+        const dateA = a.timestampObj || (a.timestamp ? parseTimestamp(a.timestamp) : 0);
+        const dateB = b.timestampObj || (b.timestamp ? parseTimestamp(b.timestamp) : 0);
+        const timeA = dateA instanceof Date ? dateA.getTime() : 0;
+        const timeB = dateB instanceof Date ? dateB.getTime() : 0;
+        return timeB - timeA;
     });
     
     renderOrders(filteredOrders);
@@ -224,23 +260,30 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
         
-        // Сортируем ВСЕ заказы при загрузке (новые сверху)
+        // Обрабатываем timestamp для каждого заказа, создавая объект Date
+        allOrders.forEach(order => {
+            if (order.timestamp) {
+                order.timestampObj = parseTimestamp(order.timestamp);
+            } else {
+                order.timestampObj = null;
+            }
+        });
+        
+        // Сортируем все заказы при загрузке
         allOrders.sort((a, b) => {
-            const dateA = a.timestamp ? new Date(a.timestamp) : 0;
-            const dateB = b.timestamp ? new Date(b.timestamp) : 0;
-            return dateB - dateA;
+            const timeA = a.timestampObj instanceof Date ? a.timestampObj.getTime() : 0;
+            const timeB = b.timestampObj instanceof Date ? b.timestampObj.getTime() : 0;
+            return timeB - timeA;
         });
         
         applyFilters();
         
-        // Если есть highlightNewId, подсветим карточку
         if (highlightNewId) {
             setTimeout(() => {
                 const newCard = document.querySelector(`.card[data-row="${highlightNewId}"]`);
                 if (newCard) {
                     newCard.classList.add('new-order');
                     setTimeout(() => newCard.classList.remove('new-order'), 1000);
-                    // плавный скролл к новому заказу
                     newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 100);
@@ -285,6 +328,7 @@ async function saveOrder() {
     
     try {
         const now = new Date();
+        // Отправляем ISO строку с полной датой и временем
         const result = await callScriptAsync('addOrder', { 
             partNumber, 
             quantity, 
@@ -294,16 +338,16 @@ async function saveOrder() {
         
         if (result && result.error) throw new Error(result.error);
         
-        // Сохраняем ID (или временную метку) добавленной строки, чтобы подсветить
         const newRowId = result && result.row ? result.row : (result && result.id ? result.id : null);
         
-        showToast(`<i class="fas fa-check-circle"></i> Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
+        // Форматируем текущее время для уведомления
+        const timeStr = formatDateTime(now);
+        showToast(`<i class="fas fa-check-circle"></i> Заказ для ${club}: ${partNumber} (${quantity} шт.)<br>Время: ${timeStr}`);
         
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
         
-        // Перезагружаем и подсвечиваем новый заказ
         await loadOrders(true, newRowId);
         
     } catch(err) {
@@ -360,7 +404,6 @@ async function deleteOrder(row, cardElement) {
             allOrders.splice(orderIndex, 1);
         }
         
-        // После удаления снова применяем сортировку и фильтры
         applyFilters();
         
         showToast('<i class="fas fa-trash-alt"></i> Заказ удалён');
@@ -394,13 +437,17 @@ function renderOrders(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         
+        // Получаем строку даты из timestamp
         let dateStr = '—';
+        let timeStr = '';
         if (order.timestamp) {
-            try {
-                const date = new Date(order.timestamp);
+            const date = parseTimestamp(order.timestamp);
+            if (date && date instanceof Date && !isNaN(date)) {
                 dateStr = formatDateTime(date);
-            } catch(e) {
-                dateStr = '—';
+                // Для отображения также отдельно времени
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                timeStr = `${hours}:${minutes}`;
             }
         }
         
@@ -413,7 +460,7 @@ function renderOrders(orders) {
             { label: 'Номер детали', value: order.partNumber || '—' },
             { label: 'Количество', value: `${order.quantity} шт.` },
             { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата и время', value: dateStr }
+            { label: 'Дата и время заказа', value: dateStr }
         ];
         
         rows.forEach(r => {
