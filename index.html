@@ -43,7 +43,7 @@ button:disabled{opacity:0.6;transform:none;}
 .loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1e2f3f;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
-.filter-group{flex:1;min-width:150px;}
+.filter-group{flex:1;min-width:180px;}
 .filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;}
 .stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;flex-wrap:wrap;gap:10px;}
 .stats-bar span{font-weight:600;color:#1e2f3f;}
@@ -88,7 +88,7 @@ button:disabled{opacity:0.6;transform:none;}
         <!-- Фильтрация -->
         <div class="filter-section">
             <div class="filter-group">
-                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по статусу:</label>
+                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Статус заказа:</label>
                 <select id="statusFilter">
                     <option value="all">📋 Все заказы</option>
                     <option value="active">🟠 Активные</option>
@@ -96,7 +96,7 @@ button:disabled{opacity:0.6;transform:none;}
                 </select>
             </div>
             <div class="filter-group">
-                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по клубу:</label>
+                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Боулинг-клуб:</label>
                 <select id="clubFilter">
                     <option value="all">🎳 Все клубы</option>
                     <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
@@ -104,18 +104,12 @@ button:disabled{opacity:0.6;transform:none;}
                     <option value="LUCKY STRIKE KH">🎳 LUCKY STRIKE KH</option>
                 </select>
             </div>
-            <div class="filter-group">
-                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по детали:</label>
-                <select id="partNumberFilter">
-                    <option value="all">🔧 Все детали</option>
-                </select>
-            </div>
         </div>
         
         <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по номеру детали или клубу..." onkeyup="applyFilters()">
         
         <div class="stats-bar" id="statsBar">
-            <span>📊 Всего заказов: <span id="totalCount">0</span></span>
+            <span>📊 Всего: <span id="totalCount">0</span></span>
             <span>🟠 Активных: <span id="activeCount">0</span></span>
             <span>✅ Доставленных: <span id="deliveredCount">0</span></span>
             <span id="loadingIndicator" style="color:#1e2f3f; display:none;"><i class="fas fa-spinner fa-pulse"></i> Загрузка...</span>
@@ -195,7 +189,6 @@ function applyFilters() {
     // Получаем значения фильтров
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
-    const partFilter = document.getElementById('partNumberFilter').value;
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
     
     // Применяем все фильтры
@@ -214,11 +207,6 @@ function applyFilters() {
         filteredOrders = filteredOrders.filter(order => order.club === clubFilter);
     }
     
-    // Фильтр по номеру детали
-    if (partFilter !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.partNumber === partFilter);
-    }
-    
     // Поиск
     if (searchQuery) {
         filteredOrders = filteredOrders.filter(order => 
@@ -229,14 +217,6 @@ function applyFilters() {
     
     // Рендерим отфильтрованные заказы
     renderOrders(filteredOrders);
-}
-
-function resetFilters() {
-    document.getElementById('statusFilter').value = 'all';
-    document.getElementById('clubFilter').value = 'all';
-    document.getElementById('partNumberFilter').value = 'all';
-    document.getElementById('searchInput').value = '';
-    applyFilters();
 }
 
 function updateStats() {
@@ -254,18 +234,6 @@ function updateStats() {
     document.getElementById('totalCount').textContent = total;
     document.getElementById('activeCount').textContent = active;
     document.getElementById('deliveredCount').textContent = delivered;
-}
-
-function updatePartNumberFilter() {
-    const partNumbers = [...new Set(allOrders.map(order => order.partNumber).filter(p => p))];
-    const filterSelect = document.getElementById('partNumberFilter');
-    
-    if (!filterSelect) return;
-    
-    filterSelect.innerHTML = '<option value="all">🔧 Все детали</option>';
-    partNumbers.forEach(part => {
-        filterSelect.innerHTML += `<option value="${escapeHtml(part)}">🔧 ${escapeHtml(part)}</option>`;
-    });
 }
 
 async function loadOrders(showLoading = true) {
@@ -289,9 +257,6 @@ async function loadOrders(showLoading = true) {
         if (orders && orders.error) throw new Error(orders.error);
         
         allOrders = Array.isArray(orders) ? orders : [];
-        
-        // Обновляем фильтр номеров деталей
-        updatePartNumberFilter();
         
         // Обновляем статистику
         updateStats();
@@ -424,8 +389,7 @@ async function deleteOrder(row, cardElement) {
             allOrders.splice(orderIndex, 1);
         }
         
-        // Обновляем фильтры и статистику
-        updatePartNumberFilter();
+        // Обновляем статистику
         updateStats();
         applyFilters();
         
@@ -653,7 +617,6 @@ window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
 window.applyFilters = applyFilters;
-window.resetFilters = resetFilters;
 window.manualRefresh = manualRefresh;
 
 // Инициализация при загрузке
@@ -723,12 +686,10 @@ window.addEventListener('load', async () => {
 document.addEventListener('DOMContentLoaded', () => {
     const statusFilter = document.getElementById('statusFilter');
     const clubFilter = document.getElementById('clubFilter');
-    const partFilter = document.getElementById('partNumberFilter');
     const searchInput = document.getElementById('searchInput');
     
     if (statusFilter) statusFilter.addEventListener('change', applyFilters);
     if (clubFilter) clubFilter.addEventListener('change', applyFilters);
-    if (partFilter) partFilter.addEventListener('change', applyFilters);
     if (searchInput) searchInput.addEventListener('keyup', applyFilters);
 });
 </script>
