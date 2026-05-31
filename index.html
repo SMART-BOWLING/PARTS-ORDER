@@ -6,6 +6,7 @@
 <title>Блокнот заказов запчастей | Мультипозиции</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 *{box-sizing:border-box;}
 body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#f4f6fa;color:#1a2f40;}
@@ -13,22 +14,46 @@ body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Rob
 .form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:20px;border:1px solid #eef2f6;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
 .form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#1a2f40;display:flex;align-items:center;gap:8px;border-left:4px solid #1a2f40;padding-left:12px;}
 input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:20px;font-size:16px;background:#fff;color:#1a2f40;}
-/* новая строка с двумя полями */
+
+/* Новая строка: номер + уменьшенное поле количества + иконка удаления */
 .double-input-row {
     display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-.double-input-row .part-field {
-    flex: 2;
-}
-.double-input-row .qty-field {
-    flex: 1;
-}
-.double-input-row input {
+    gap: 10px;
+    align-items: center;
     margin-bottom: 0;
 }
-/* контейнер для динамических позиций */
+.part-field {
+    flex: 2;
+}
+.qty-field {
+    flex: 0.7;  /* Уменьшенное поле под количество */
+    min-width: 85px;
+}
+.remove-icon {
+    flex: 0 0 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: #9aa9bf;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    margin: 0;
+    transition: 0.2s;
+    border-radius: 40px;
+    width: 40px;
+    height: 44px;
+}
+.remove-icon:hover {
+    background: #fee2e2;
+    color: #dc143c;
+}
+.remove-icon:active {
+    transform: scale(0.92);
+}
+/* Контейнер для позиций */
 .items-container {
     margin-top: 8px;
     margin-bottom: 16px;
@@ -36,9 +61,10 @@ input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px s
 .position-item {
     background: #fafcff;
     border-radius: 20px;
-    padding: 8px 12px 8px 0;
+    padding: 10px 12px;
     margin-bottom: 12px;
     border: 1px solid #edf2f9;
+    transition: 0.1s;
 }
 .add-position-btn {
     background: #f0f3f8;
@@ -54,26 +80,6 @@ input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px s
     gap: 8px;
 }
 .add-position-btn:active { transform: scale(0.98);}
-.remove-item-btn {
-    width: auto;
-    background: transparent;
-    color: #8c9ab0;
-    border: none;
-    font-size: 13px;
-    padding: 6px 12px;
-    margin: 0;
-    border-radius: 40px;
-    font-weight: normal;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.remove-item-btn:hover { background: #fee2e2; color:#dc143c;}
-.item-header {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 6px;
-}
 input:focus,select:focus{outline:none;border-color:#dc143c;box-shadow:0 0 0 3px rgba(220,20,60,0.1);}
 button{background:#1a2f40;color:white;font-weight:600;border:none;cursor:pointer;margin-bottom:0;transition:0.2s;}
 button:active{transform:scale(0.98);}
@@ -146,7 +152,6 @@ button:disabled{opacity:0.6;transform:none;}
 .refresh-btn-under{background:#1a2f40;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
 .button-group{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <div class="wrapper">
@@ -178,14 +183,12 @@ button:disabled{opacity:0.6;transform:none;}
             
             <!-- Динамический контейнер позиций -->
             <div id="positionsContainer" class="items-container">
-                <!-- базовая позиция (первая строка) -->
+                <!-- базовая позиция (первая строка) с иконкой удаления (видима, но при единственной будет скрыта) -->
                 <div class="position-item" data-idx="0">
-                    <div class="item-header">
-                        <button type="button" class="remove-item-btn" style="visibility: hidden;"><i class="fas fa-trash-alt"></i> Удалить</button>
-                    </div>
                     <div class="double-input-row">
                         <div class="part-field"><input type="text" class="dynamic-part" placeholder="Номер детали *" autocomplete="off"></div>
                         <div class="qty-field"><input type="number" class="dynamic-qty" placeholder="Кол-во" min="1" value="1"></div>
+                        <button type="button" class="remove-icon" title="Удалить позицию"><i class="fas fa-trash-alt"></i></button>
                     </div>
                 </div>
             </div>
@@ -222,35 +225,32 @@ let isLoading = false;
 let isFirstLoadCompleted = false;
 
 // ----- управление динамическими позициями -----
-let positionCounter = 1; // счетчик для id следующих элементов
+let positionCounter = 1;
 
 function createPositionItem(idx) {
     const div = document.createElement('div');
     div.className = 'position-item';
     div.setAttribute('data-idx', idx);
-    const header = document.createElement('div');
-    header.className = 'item-header';
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'remove-item-btn';
-    removeBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
-    removeBtn.onclick = function(e) {
-        e.preventDefault();
-        if (document.querySelectorAll('.position-item').length === 1) {
-            showToast('Должна быть хотя бы одна позиция', true);
-            return;
-        }
-        div.remove();
-    };
-    header.appendChild(removeBtn);
     const rowDiv = document.createElement('div');
     rowDiv.className = 'double-input-row';
     rowDiv.innerHTML = `
         <div class="part-field"><input type="text" class="dynamic-part" placeholder="Номер детали *" autocomplete="off"></div>
         <div class="qty-field"><input type="number" class="dynamic-qty" placeholder="Кол-во" min="1" value="1"></div>
+        <button type="button" class="remove-icon" title="Удалить позицию"><i class="fas fa-trash-alt"></i></button>
     `;
-    div.appendChild(header);
     div.appendChild(rowDiv);
+    // Привязываем обработчик удаления
+    const removeBtn = rowDiv.querySelector('.remove-icon');
+    removeBtn.onclick = function(e) {
+        e.preventDefault();
+        const items = document.querySelectorAll('.position-item');
+        if (items.length === 1) {
+            showToast('Должна быть хотя бы одна позиция', true);
+            return;
+        }
+        div.remove();
+        toggleRemoveIconsVisibility();
+    };
     return div;
 }
 
@@ -259,13 +259,38 @@ function addNewPosition() {
     const newIdx = positionCounter++;
     const newItem = createPositionItem(newIdx);
     container.appendChild(newItem);
-    // автофокус на новом поле номера детали
     const partInput = newItem.querySelector('.dynamic-part');
     if (partInput) partInput.focus();
+    toggleRemoveIconsVisibility();
     showToast('Добавлена новая строка', false);
 }
 
-// Собрать данные из всех позиций: вернуть массив объектов { partNumber, quantity }
+function toggleRemoveIconsVisibility() {
+    const items = document.querySelectorAll('.position-item');
+    items.forEach((item, idx) => {
+        const icon = item.querySelector('.remove-icon');
+        if (icon) {
+            if (items.length === 1) {
+                icon.style.visibility = 'hidden';
+                icon.style.opacity = '0';
+            } else {
+                icon.style.visibility = 'visible';
+                icon.style.opacity = '1';
+            }
+        }
+    });
+}
+
+function observeContainerChanges() {
+    const container = document.getElementById('positionsContainer');
+    if (!container) return;
+    const observer = new MutationObserver(() => {
+        toggleRemoveIconsVisibility();
+    });
+    observer.observe(container, { childList: true, subtree: false });
+}
+
+// Собрать данные из всех позиций
 function collectPositions() {
     const items = document.querySelectorAll('.position-item');
     const positions = [];
@@ -281,7 +306,6 @@ function collectPositions() {
     return positions;
 }
 
-// Валидация клуба и наличия хотя бы одной корректной позиции
 function validateOrderInputs() {
     const club = document.getElementById('clubSelect').value;
     if (!club) { showToast('<i class="fas fa-exclamation-circle"></i> Выберите боулинг-клуб', true); return null; }
@@ -290,7 +314,6 @@ function validateOrderInputs() {
     return { club, positions };
 }
 
-// Сохраняем несколько позиций последовательными вызовами addOrder (каждая запись создаётся отдельно)
 async function saveMultiOrder() {
     const validation = validateOrderInputs();
     if (!validation) return;
@@ -306,7 +329,6 @@ async function saveMultiOrder() {
     const now = new Date();
     const timeISO = now.toISOString();
     
-    // Проходим по каждой позиции и вызываем addOrder для каждой
     for (let i = 0; i < positions.length; i++) {
         const pos = positions[i];
         try {
@@ -329,23 +351,18 @@ async function saveMultiOrder() {
         if (errors.length) message += `<br><small>Ошибки: ${errors.join('; ')}</small>`;
         showToast(message, errors.length > 0);
         
-        // очистить форму: сбросить клуб, очистить все поля ввода деталей и количества, оставить только одну пустую позицию
+        // Сброс формы: очистить клуб, оставить одну пустую позицию
         document.getElementById('clubSelect').value = '';
-        // очистить контейнер позиций и создать одну чистую позицию
         const container = document.getElementById('positionsContainer');
         container.innerHTML = '';
-        // сброс счетчика
         positionCounter = 1;
         const firstItem = createPositionItem(0);
         container.appendChild(firstItem);
-        // очистить значения внутри
         const firstPart = firstItem.querySelector('.dynamic-part');
         const firstQty = firstItem.querySelector('.dynamic-qty');
         if (firstPart) firstPart.value = '';
         if (firstQty) firstQty.value = '1';
-        // скрыть кнопку удаления для единственной позиции (визуально скрыть)
-        const delBtn = firstItem.querySelector('.remove-item-btn');
-        if (delBtn) delBtn.style.visibility = 'hidden';
+        toggleRemoveIconsVisibility();
         
         await loadOrders(true, null);
     } else {
@@ -356,42 +373,7 @@ async function saveMultiOrder() {
     btn.disabled = false;
 }
 
-// Обработка добавления позиции + скрытие/показ кнопки удаления для единственного элемента
-function bindAddPositionEvents() {
-    const addBtn = document.getElementById('addPositionBtn');
-    if (addBtn) {
-        addBtn.onclick = () => {
-            addNewPosition();
-            toggleRemoveButtonsVisibility();
-        };
-    }
-}
-
-function toggleRemoveButtonsVisibility() {
-    const items = document.querySelectorAll('.position-item');
-    items.forEach((item, idx) => {
-        const btn = item.querySelector('.remove-item-btn');
-        if (btn) {
-            if (items.length === 1) {
-                btn.style.visibility = 'hidden';
-            } else {
-                btn.style.visibility = 'visible';
-            }
-        }
-    });
-}
-
-// Наблюдатель за изменениями в DOM, чтобы обновлять видимость кнопок удаления после удаления
-function observeContainerChanges() {
-    const container = document.getElementById('positionsContainer');
-    if (!container) return;
-    const observer = new MutationObserver(() => {
-        toggleRemoveButtonsVisibility();
-    });
-    observer.observe(container, { childList: true, subtree: false });
-}
-
-// --- исходные функции из оригинального кода, не изменяя логику работы с Google Sheets ---
+// ---------- ОСТАЛЬНЫЕ ФУНКЦИИ (Google Sheets, рендер, статусы) ----------
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -579,6 +561,7 @@ async function checkEmailAndSiteInSheet(email) { try { const resp = await gapi.c
 async function loginUser(user) { document.getElementById('login-section').style.display = 'none'; document.getElementById('user-info').style.display = 'flex'; document.getElementById('main-content').style.display = 'block'; document.getElementById('user-pic').src = user.picture; document.getElementById('user-name').innerText = currentUserNameFromSheet || user.name; document.getElementById('user-email').innerText = user.email; localStorage.setItem('userLoggedIn', 'true'); localStorage.setItem('userEmail', user.email); localStorage.setItem('userName', user.name); localStorage.setItem('userPic', user.picture); await loadOrders(true); }
 function parseJwt(token) { try { const base64Url = token.split('.')[1]; const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); } catch(e){ return {}; } }
 function signOut() { localStorage.clear(); if(google?.accounts?.id) google.accounts.id.disableAutoSelect(); location.reload(); }
+
 window.saveMultiOrder = saveMultiOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
@@ -587,10 +570,13 @@ window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
 window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
+
 window.addEventListener('load', async () => {
-    bindAddPositionEvents();
+    const addBtn = document.getElementById('addPositionBtn');
+    if (addBtn) addBtn.onclick = () => addNewPosition();
     observeContainerChanges();
-    toggleRemoveButtonsVisibility();
+    toggleRemoveIconsVisibility();
+    
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
     if (logged && savedEmail) {
