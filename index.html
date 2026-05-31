@@ -470,7 +470,7 @@ body {
             <button type="button" id="addItemBtn" class="add-position-btn"><i class="fas fa-plus-circle"></i> Добавить позицию</button>
             
             <div class="button-group">
-                <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить все позиции (единый заказ)</button>
+                <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Оформить заказ</button>
                 <button class="refresh-btn-under" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Открыть список заказов</button>
             </div>
         </div>
@@ -533,18 +533,39 @@ function renderItems() {
         fieldDiv.appendChild(icon);
         fieldDiv.appendChild(partInput);
         
-        // Поле количества
-        const qtyInput = document.createElement('input');
-        qtyInput.type = 'number';
-        qtyInput.className = 'qty-input';
-        qtyInput.placeholder = 'Qty';
-        qtyInput.min = 1;
-        qtyInput.value = item.quantity;
-        qtyInput.addEventListener('input', (e) => {
-            let val = parseInt(e.target.value);
-            item.quantity = (isNaN(val) || val < 1) ? 1 : val;
-            qtyInput.value = item.quantity;
-        });
+     // Поле количества
+const qtyInput = document.createElement('input');
+qtyInput.type = 'number';
+qtyInput.className = 'qty-input';
+qtyInput.placeholder = 'Qty';
+qtyInput.min = 1;
+
+// 🔥 ИЗНАЧАЛЬНО ПУСТОЕ ПОЛЕ
+qtyInput.value = '';
+
+// если у тебя есть item — храним значение отдельно
+item.quantity = null;
+
+qtyInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+
+    // если поле пустое — ничего не принуждаем
+    if (val === '') {
+        item.quantity = null;
+        return;
+    }
+
+    const num = parseInt(val, 10);
+
+    // принимаем только корректные значения >= 1
+    if (!isNaN(num) && num >= 1) {
+        item.quantity = num;
+    } else {
+        // если ввели мусор — очищаем обратно
+        qtyInput.value = '';
+        item.quantity = null;
+    }
+});
         
         // Кнопка удаления (стиль .delete-btn)
         const delBtn = document.createElement('button');
