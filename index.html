@@ -81,8 +81,8 @@ button:disabled{opacity:0.6;transform:none;}
                 <option value="SKYMALL">SKYMALL</option>
                 <option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option>
             </select>
-            <input type="text" id="partNumber" placeholder="Номер детали (например: 7890-A)" autocomplete="off">
-            <input type="number" id="quantity" placeholder="Количество" min="1" value="1">
+            <input type="text" id="partNumber" placeholder="Номер детали)" autocomplete="off">
+            <input type="number" id="quantity" placeholder="Количество" min="1">
             
             <div class="button-group">
                 <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
@@ -108,7 +108,7 @@ button:disabled{opacity:0.6;transform:none;}
             </div>
         </div>
         
-        <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу..." onkeyup="applyFilters()">
+        <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали" onkeyup="applyFilters()">
         
         <div id="ordersList"></div>
     </div>
@@ -373,7 +373,7 @@ function renderOrders(orders) {
             { label: 'Номер детали', value: order.partNumber || '—' },
             { label: 'Количество', value: `${order.quantity} шт.` },
             { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата и время заказа', value: dateStr }
+            { label: 'Дата и время', value: dateStr }
         ];
         
         rows.forEach(r => {
