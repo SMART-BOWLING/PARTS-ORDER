@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -8,46 +8,46 @@
 <script src="https://apis.google.com/js/api.js"></script>
 <style>
 *{box-sizing:border-box;}
-body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#f4f6fa;color:#111827;}
+body{margin:0;padding:16px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, Arial;background:#d7dce3;color:#1a2f40;}
 .wrapper{max-width:800px;margin:0 auto;}
-.form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:28px;border:1px solid #eef2f6;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
-.form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#0f172a;display:flex;align-items:center;gap:8px;border-left:4px solid #1e2f3f;padding-left:12px;}
-input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #e2e8f0;border-radius:20px;font-size:15px;background:#fff;}
-input:focus,select:focus{outline:none;border-color:#7c8ea0;box-shadow:0 0 0 3px rgba(28,45,65,0.08);}
-button{background:#1e2f3f;color:white;font-weight:600;border:none;cursor:pointer;margin-bottom:0;transition:0.2s;}
+.form-card{background:white;border-radius:28px;padding:20px 18px;margin-bottom:28px;border:1px solid #d7dce3;box-shadow:0 2px 8px rgba(0,0,0,0.02);}
+.form-title{font-weight:600;font-size:18px;margin-bottom:16px;color:#1a2f40;display:flex;align-items:center;gap:8px;border-left:4px solid #dc143c;padding-left:12px;}
+input,select,button{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #d7dce3;border-radius:20px;font-size:15px;background:#fff;color:#1a2f40;}
+input:focus,select:focus{outline:none;border-color:#1a2f40;box-shadow:0 0 0 3px rgba(26,47,64,0.08);}
+button{background:#1a2f40;color:white;font-weight:600;border:none;cursor:pointer;margin-bottom:0;transition:0.2s;}
 button:active{transform:scale(0.98);}
 button:disabled{opacity:0.6;transform:none;}
-.save-btn{background:#1e2f3f;margin-top:8px;}
-.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;transition:opacity 0.3s;}
+.save-btn{background:#1a2f40;margin-top:8px;}
+.card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #d7dce3;transition:opacity 0.3s;}
 .order-table{width:100%;border-collapse:collapse;}
-.order-table tr{border-bottom:1px solid #f0f2f5;}
+.order-table tr{border-bottom:1px solid #d7dce3;}
 .order-table tr:last-child{border-bottom:none;}
 .order-table td{padding:14px 16px;font-size:14px;vertical-align:top;}
-.order-table td:first-child{font-weight:500;color:#2c3e4e;width:38%;background:#fefefe;}
-.order-table td:last-child{color:#1f2a3e;text-align:right;word-break:break-word;}
-.status-select{padding:6px 12px;border-radius:20px;border:1px solid #e2e8f0;background:white;font-size:13px;font-weight:500;cursor:pointer;width:auto;margin:0;}
-.status-select.status-pending{color:#c2410c;border-color:#fed7aa;background:#fff7ed;}
-.status-select.status-delivered{color:#1e2f3f;border-color:#d1dbe8;background:#f8fafc;}
-.action-bar{display:flex;gap:12px;padding:12px 16px 18px;background:white;border-top:1px solid #edf2f7;justify-content:space-between;}
+.order-table td:first-child{font-weight:500;color:#1a2f40;width:38%;background:#fefefe;}
+.order-table td:last-child{color:#1a2f40;text-align:right;word-break:break-word;}
+.status-select{padding:6px 12px;border-radius:20px;border:1px solid #d7dce3;background:white;font-size:13px;font-weight:500;cursor:pointer;width:auto;margin:0;}
+.status-select.status-pending{color:#dc143c;border-color:#ffccd4;background:#fff5f7;}
+.status-select.status-delivered{color:#1a2f40;border-color:#d7dce3;background:#f8fafc;}
+.action-bar{display:flex;gap:12px;padding:12px 16px 18px;background:white;border-top:1px solid #d7dce3;justify-content:space-between;}
 .action-btn{flex:1;padding:10px 12px;border-radius:40px;font-size:14px;font-weight:500;text-align:center;cursor:pointer;border:none;}
-.delete-btn{background:#fff1f0;color:#b91c1c;border:1px solid #ffdedc;width:100%;}
-.empty-state{text-align:center;padding:48px 20px;background:white;border-radius:28px;color:#6c7a8e;border:1px solid #eef2f6;}
+.delete-btn{background:#fff5f7;color:#dc143c;border:1px solid #ffccd4;width:100%;}
+.empty-state{text-align:center;padding:48px 20px;background:white;border-radius:28px;color:#1a2f40;border:1px solid #d7dce3;}
 #login-section{display:flex;justify-content:center;align-items:center;min-height:500px;}
-#login-container{background:white;padding:40px 28px;border-radius:40px;text-align:center;max-width:400px;width:100%;border:1px solid #eef2f6;}
-#user-info{display:none;align-items:center;justify-content:space-between;background:white;padding:10px 20px;border-radius:60px;margin-bottom:24px;border:1px solid #eef2f6;}
+#login-container{background:white;padding:40px 28px;border-radius:40px;text-align:center;max-width:400px;width:100%;border:1px solid #d7dce3;}
+#user-info{display:none;align-items:center;justify-content:space-between;background:white;padding:10px 20px;border-radius:60px;margin-bottom:24px;border:1px solid #d7dce3;}
 .user-details{display:flex;align-items:center;gap:12px;}
 #user-pic{width:42px;height:42px;border-radius:50%;object-fit:cover;}
-#logout-btn{width:auto;background:#f1f5f9;color:#1f2a3e;padding:8px 18px;border-radius:40px;margin:0;}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e2f3f;color:white;padding:10px 24px;border-radius:60px;font-size:14px;z-index:1000;animation:fadeUp 0.25s ease;}
+#logout-btn{width:auto;background:#d7dce3;color:#1a2f40;padding:8px 18px;border-radius:40px;margin:0;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2f40;color:white;padding:10px 24px;border-radius:60px;font-size:14px;z-index:1000;animation:fadeUp 0.25s ease;}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(12px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
-.loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #e2e8f0;border-radius:50%;border-top-color:#1e2f3f;animation:spin 0.7s linear infinite;}
+.loading-spinner{display:inline-block;width:36px;height:36px;border:3px solid #d7dce3;border-radius:50%;border-top-color:#dc143c;animation:spin 0.7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
 .filter-group{flex:1;min-width:150px;}
 .filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;}
-.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
-.refresh-btn-under{background:#4a5b6e;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
-.refresh-btn-under:hover{background:#2c3e4e;}
+.search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #d7dce3;font-size:14px;margin-bottom:16px;}
+.refresh-btn-under{background:#1a2f40;color:white;padding:14px 16px;border-radius:20px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:0;}
+.refresh-btn-under:hover{background:#dc143c;}
 .button-group{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -56,9 +56,9 @@ button:disabled{opacity:0.6;transform:none;}
 <div class="wrapper">
     <div id="login-section">
         <div id="login-container">
-            <div class="login-icon"><i class="fas fa-clipboard-list" style="font-size:40px;color:#1e2f3f;"></i></div>
+            <div class="login-icon"><i class="fas fa-clipboard-list" style="font-size:40px;color:#dc143c;"></i></div>
             <h2>ЗАПЧАСТИ</h2>
-            <p style="color:#4b5565;">Учёт заказов для боулинг-клубов</p>
+            <p style="color:#1a2f40;">Учёт заказов для боулинг-клубов</p>
             <div id="g_id_onload" data-client_id="328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
             <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-text="signin_with" data-size="large"></div>
         </div>
@@ -66,7 +66,7 @@ button:disabled{opacity:0.6;transform:none;}
     <div id="user-info">
         <div class="user-details">
             <img id="user-pic" src="">
-            <div><div id="user-name" style="font-weight:600;"></div><div id="user-email" style="font-size:12px;color:#5b6b82;"></div></div>
+            <div><div id="user-name" style="font-weight:600;"></div><div id="user-email" style="font-size:12px;color:#1a2f40;"></div></div>
         </div>
         <button id="logout-btn" onclick="signOut()">Выйти</button>
     </div>
@@ -75,11 +75,11 @@ button:disabled{opacity:0.6;transform:none;}
             <div class="form-title"><i class="fas fa-pen-alt"></i> Новый заказ запчастей</div>
             <select id="clubSelect">
                 <option value="" disabled selected>— Выберите боулинг-клуб —</option>
-                <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
-                <option value="SKYMALL">🎳 SKYMALL</option>
-                <option value="LUCKY STRIKE KH">🎳 LUCKY STRIKE KH</option>
+                <option value="BLOCKBUSTER">✦ BLOCKBUSTER</option>
+                <option value="SKYMALL">✦ SKYMALL</option>
+                <option value="LUCKY STRIKE KH">✦ LUCKY STRIKE KH</option>
             </select>
-            <input type="text" id="partNumber" placeholder="Номер детали (например: 7890-A)" autocomplete="off">
+            <input type="text" id="partNumber" placeholder="Номер детали (пример: 7890-A)" autocomplete="off">
             <input type="number" id="quantity" placeholder="Количество" min="1" value="1">
             
             <div class="button-group">
@@ -88,21 +88,20 @@ button:disabled{opacity:0.6;transform:none;}
             </div>
         </div>
         
-        <!-- Фильтрация -->
         <div class="filter-section">
             <div class="filter-group">
                 <select id="statusFilter">
-                    <option value="all">📋 Все заказы</option>
-                    <option value="active">🟠 Активные</option>
-                    <option value="delivered">✅ Доставленные</option>
+                    <option value="all">▸ Все заказы</option>
+                    <option value="active">⚡ Активные</option>
+                    <option value="delivered">✓ Доставленные</option>
                 </select>
             </div>
             <div class="filter-group">
                 <select id="clubFilter">
-                    <option value="all">🎳 Все клубы</option>
-                    <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
-                    <option value="SKYMALL">🎳 SKYMALL</option>
-                    <option value="LUCKY STRIKE KH">🎳 LUCKY STRIKE KH</option>
+                    <option value="all">✦ Все клубы</option>
+                    <option value="BLOCKBUSTER">✦ BLOCKBUSTER</option>
+                    <option value="SKYMALL">✦ SKYMALL</option>
+                    <option value="LUCKY STRIKE KH">✦ LUCKY STRIKE KH</option>
                 </select>
             </div>
         </div>
@@ -114,7 +113,6 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 
 <script>
-// ==================== КОНФИГУРАЦИЯ ====================
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0RzP7Pp_XQ5h3KibStxSuZ55QnS9s-QvsTST_gQiaQYGSvLQYnpuKcI35XRcvbsxwYg/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
@@ -126,7 +124,6 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
-// Функция для форматирования даты
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     
@@ -144,7 +141,7 @@ function showToast(msg, isError) {
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = msg;
-    toast.style.background = isError ? '#c2410c' : '#1e2f3f';
+    toast.style.background = isError ? '#dc143c' : '#1a2f40';
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
 }
@@ -224,7 +221,7 @@ async function loadOrders(showLoading = true) {
             container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Создайте первый заказ!</div>';
         }
         
-        showToast(`✅ Загружено ${allOrders.length} заказов`);
+        showToast(`✓ Загружено ${allOrders.length} заказов`);
         
         return allOrders;
     } catch(err) {
@@ -234,7 +231,7 @@ async function loadOrders(showLoading = true) {
             <button onclick="manualRefresh()" style="margin-top:15px;width:auto;padding:8px 20px;">
             <i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
         }
-        showToast(`❌ Ошибка загрузки: ${err.message}`, true);
+        showToast(`✗ Ошибка загрузки: ${err.message}`, true);
         return [];
     } finally {
         isLoading = false;
@@ -250,9 +247,9 @@ async function saveOrder() {
     const partNumber = document.getElementById('partNumber').value.trim();
     const quantity = parseInt(document.getElementById('quantity').value);
     
-    if (!club) { showToast('❌ Выберите клуб', true); return; }
-    if (!partNumber) { showToast('❌ Введите номер детали', true); return; }
-    if (isNaN(quantity) || quantity <= 0) { showToast('❌ Корректное количество', true); return; }
+    if (!club) { showToast('✗ Выберите клуб', true); return; }
+    if (!partNumber) { showToast('✗ Введите номер детали', true); return; }
+    if (isNaN(quantity) || quantity <= 0) { showToast('✗ Корректное количество', true); return; }
     
     const btn = document.getElementById('saveOrderBtn');
     const originalText = btn.innerHTML;
@@ -271,7 +268,7 @@ async function saveOrder() {
         
         if (result && result.error) throw new Error(result.error);
         
-        showToast(`✅ Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
+        showToast(`✓ Заказ для ${club}: ${partNumber} (${quantity} шт.) добавлен!`);
         
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
@@ -280,7 +277,7 @@ async function saveOrder() {
         await loadOrders(true);
         
     } catch(err) {
-        showToast(`❌ Ошибка: ${err.message}`, true);
+        showToast(`✗ Ошибка: ${err.message}`, true);
     } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
@@ -305,9 +302,9 @@ async function updateStatus(row, newStatus, selectElement) {
         
         applyFilters();
         
-        showToast(`✅ Статус изменён на "${newStatus}"`);
+        showToast(`✓ Статус изменён на "${newStatus}"`);
     } catch(err) {
-        showToast(`❌ Ошибка: ${err.message}`, true);
+        showToast(`✗ Ошибка: ${err.message}`, true);
         selectElement.value = originalValue;
     } finally {
         selectElement.disabled = false;
@@ -335,7 +332,7 @@ async function deleteOrder(row, cardElement) {
         
         applyFilters();
         
-        showToast('🗑 Заказ удалён');
+        showToast('✓ Заказ удалён');
     } catch(err) {
         showToast(`Ошибка: ${err.message}`, true);
         if (card) {
@@ -407,8 +404,8 @@ function renderOrders(orders) {
         const select = document.createElement('select');
         select.className = `status-select ${currentStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
         select.innerHTML = `
-            <option value="Активно" ${currentStatus === 'Активно' ? 'selected' : ''}>🟠 Активно</option>
-            <option value="Доставлено" ${currentStatus === 'Доставлено' ? 'selected' : ''}>✅ Доставлено</option>
+            <option value="Активно" ${currentStatus === 'Активно' ? 'selected' : ''}>⚡ Активно</option>
+            <option value="Доставлено" ${currentStatus === 'Доставлено' ? 'selected' : ''}>✓ Доставлено</option>
         `;
         select.onchange = (e) => {
             e.stopPropagation();
@@ -425,7 +422,7 @@ function renderOrders(orders) {
         const actionDiv = document.createElement('div'); 
         actionDiv.className = 'action-bar';
         const deleteBtn = document.createElement('button'); 
-        deleteBtn.textContent = '🗑 Удалить'; 
+        deleteBtn.textContent = '✗ Удалить'; 
         deleteBtn.className = 'action-btn delete-btn';
         deleteBtn.onclick = () => deleteOrder(order.row, card);
         actionDiv.appendChild(deleteBtn);
@@ -444,7 +441,6 @@ function escapeHtml(str) {
     }); 
 }
 
-// ========== АВТОРИЗАЦИЯ ==========
 function loadSheetsAPI() { 
     return new Promise((resolve, reject) => { 
         gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); 
@@ -598,7 +594,7 @@ window.addEventListener('load', async () => {
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
                 await loadOrders(true);
             } else {
-                showToast('❌ Нет доступа к таблице', true);
+                showToast('✗ Нет доступа к таблице', true);
                 document.getElementById('ordersList').innerHTML = '<div class="empty-state">⛔ Нет доступа к таблице</div>';
             }
         } catch(err) {
