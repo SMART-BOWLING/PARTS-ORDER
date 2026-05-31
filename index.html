@@ -45,16 +45,11 @@ button:disabled{opacity:0.6;transform:none;}
 .filter-section{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
 .filter-group{flex:1;min-width:150px;}
 .filter-group select{width:100%;padding:10px 12px;border-radius:20px;font-size:14px;background:#fff;cursor:pointer;}
-.filter-buttons{display:flex;gap:12px;margin-bottom:20px;}
-.filter-btn{flex:1;padding:12px 16px;border-radius:40px;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:0.2s;}
-.filter-btn.active{background:#1e2f3f;color:white;}
-.filter-btn:not(.active){background:#e2e8f0;color:#475569;}
-.filter-btn:not(.active):hover{background:#cbd5e1;}
-.reset-filter-btn{background:#6c7a8e;color:white;padding:10px 20px;border-radius:40px;font-size:14px;cursor:pointer;border:none;margin-left:auto;}
 .stats-bar{background:#f8fafc;padding:12px 16px;border-radius:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;font-size:14px;flex-wrap:wrap;gap:10px;}
 .stats-bar span{font-weight:600;color:#1e2f3f;}
 .search-box{width:100%;padding:12px 16px;border-radius:30px;border:1px solid #e2e8f0;font-size:14px;margin-bottom:16px;}
-.manual-refresh-btn{background:#4a5b6e;color:white;padding:10px 20px;border-radius:40px;font-size:14px;cursor:pointer;border:none;margin-left:10px;}
+.refresh-btn-bottom{background:#4a5b6e;color:white;padding:12px 20px;border-radius:40px;font-size:15px;font-weight:600;cursor:pointer;border:none;width:100%;margin-top:20px;}
+.refresh-btn-bottom:hover{background:#2c3e4e;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -74,10 +69,7 @@ button:disabled{opacity:0.6;transform:none;}
             <img id="user-pic" src="">
             <div><div id="user-name" style="font-weight:600;"></div><div id="user-email" style="font-size:12px;color:#5b6b82;"></div></div>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button class="manual-refresh-btn" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Обновить</button>
-            <button id="logout-btn" onclick="signOut()">Выйти</button>
-        </div>
+        <button id="logout-btn" onclick="signOut()">Выйти</button>
     </div>
     <div id="main-content" style="display:none;">
         <div class="form-card">
@@ -93,9 +85,18 @@ button:disabled{opacity:0.6;transform:none;}
             <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
         </div>
         
-        <!-- Расширенная фильтрация -->
+        <!-- Фильтрация -->
         <div class="filter-section">
             <div class="filter-group">
+                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по статусу:</label>
+                <select id="statusFilter">
+                    <option value="all">📋 Все заказы</option>
+                    <option value="active">🟠 Активные</option>
+                    <option value="delivered">✅ Доставленные</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по клубу:</label>
                 <select id="clubFilter">
                     <option value="all">🎳 Все клубы</option>
                     <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
@@ -104,17 +105,11 @@ button:disabled{opacity:0.6;transform:none;}
                 </select>
             </div>
             <div class="filter-group">
+                <label style="font-size:13px; color:#6c7a8e; margin-bottom:5px; display:block;">Фильтр по детали:</label>
                 <select id="partNumberFilter">
                     <option value="all">🔧 Все детали</option>
                 </select>
             </div>
-            <button class="reset-filter-btn" onclick="resetFilters()"><i class="fas fa-undo-alt"></i> Сброс</button>
-        </div>
-        
-        <div class="filter-buttons">
-            <button id="showActiveBtn" class="filter-btn active" onclick="setStatusFilter('active')"><i class="fas fa-play-circle"></i> АКТИВНЫЕ</button>
-            <button id="showDeliveredBtn" class="filter-btn" onclick="setStatusFilter('delivered')"><i class="fas fa-check-circle"></i> ДОСТАВЛЕННЫЕ</button>
-            <button id="showAllBtn" class="filter-btn" onclick="setStatusFilter('all')"><i class="fas fa-list"></i> ВСЕ</button>
         </div>
         
         <input type="text" id="searchInput" class="search-box" placeholder="🔍 Поиск по номеру детали или клубу..." onkeyup="applyFilters()">
@@ -127,6 +122,11 @@ button:disabled{opacity:0.6;transform:none;}
         </div>
         
         <div id="ordersList"></div>
+        
+        <!-- Кнопка обновления внизу -->
+        <button class="refresh-btn-bottom" onclick="manualRefresh()">
+            <i class="fas fa-sync-alt"></i> Обновить данные
+        </button>
     </div>
 </div>
 
@@ -141,10 +141,6 @@ const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 let currentUser = null;
 let currentUserNameFromSheet = null;
 let allOrders = [];
-let currentStatusFilter = 'active';
-let currentClubFilter = 'all';
-let currentPartFilter = 'all';
-let currentSearchQuery = '';
 let isLoading = false;
 
 // Функция для форматирования даты
@@ -195,57 +191,39 @@ function callScriptAsync(functionName, data) {
     });
 }
 
-function setStatusFilter(filter) {
-    currentStatusFilter = filter;
-    
-    // Обновляем активные кнопки
-    document.getElementById('showActiveBtn').classList.remove('active');
-    document.getElementById('showDeliveredBtn').classList.remove('active');
-    document.getElementById('showAllBtn').classList.remove('active');
-    
-    if (filter === 'active') {
-        document.getElementById('showActiveBtn').classList.add('active');
-    } else if (filter === 'delivered') {
-        document.getElementById('showDeliveredBtn').classList.add('active');
-    } else {
-        document.getElementById('showAllBtn').classList.add('active');
-    }
-    
-    applyFilters();
-}
-
 function applyFilters() {
     // Получаем значения фильтров
-    currentClubFilter = document.getElementById('clubFilter').value;
-    currentPartFilter = document.getElementById('partNumberFilter').value;
-    currentSearchQuery = document.getElementById('searchInput').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const clubFilter = document.getElementById('clubFilter').value;
+    const partFilter = document.getElementById('partNumberFilter').value;
+    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
     
     // Применяем все фильтры
     let filteredOrders = [...allOrders];
     
     // Фильтр по статусу
-    if (currentStatusFilter === 'active') {
+    if (statusFilter === 'active') {
         filteredOrders = filteredOrders.filter(order => order.status === 'Активно' || order.status === 'Активен' || !order.status || order.status === '');
-    } else if (currentStatusFilter === 'delivered') {
+    } else if (statusFilter === 'delivered') {
         filteredOrders = filteredOrders.filter(order => order.status === 'Доставлено');
     }
     // 'all' - показываем все
     
     // Фильтр по клубу
-    if (currentClubFilter !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.club === currentClubFilter);
+    if (clubFilter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.club === clubFilter);
     }
     
     // Фильтр по номеру детали
-    if (currentPartFilter !== 'all') {
-        filteredOrders = filteredOrders.filter(order => order.partNumber === currentPartFilter);
+    if (partFilter !== 'all') {
+        filteredOrders = filteredOrders.filter(order => order.partNumber === partFilter);
     }
     
     // Поиск
-    if (currentSearchQuery) {
+    if (searchQuery) {
         filteredOrders = filteredOrders.filter(order => 
-            order.partNumber.toLowerCase().includes(currentSearchQuery) ||
-            order.club.toLowerCase().includes(currentSearchQuery)
+            order.partNumber.toLowerCase().includes(searchQuery) ||
+            order.club.toLowerCase().includes(searchQuery)
         );
     }
     
@@ -254,12 +232,10 @@ function applyFilters() {
 }
 
 function resetFilters() {
+    document.getElementById('statusFilter').value = 'all';
     document.getElementById('clubFilter').value = 'all';
     document.getElementById('partNumberFilter').value = 'all';
     document.getElementById('searchInput').value = '';
-    currentClubFilter = 'all';
-    currentPartFilter = 'all';
-    currentSearchQuery = '';
     applyFilters();
 }
 
@@ -468,9 +444,10 @@ function renderOrders(orders) {
     if (!container) return;
     
     if (!orders || orders.length === 0) {
+        const statusFilter = document.getElementById('statusFilter').value;
         let message = '';
-        if (currentStatusFilter === 'active') message = 'Нет активных заказов';
-        else if (currentStatusFilter === 'delivered') message = 'Нет доставленных заказов';
+        if (statusFilter === 'active') message = 'Нет активных заказов';
+        else if (statusFilter === 'delivered') message = 'Нет доставленных заказов';
         else message = 'Нет заказов';
         
         container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i> ${message}.</div>`;
@@ -675,7 +652,6 @@ window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
 window.loadOrders = loadOrders;
-window.setStatusFilter = setStatusFilter;
 window.applyFilters = applyFilters;
 window.resetFilters = resetFilters;
 window.manualRefresh = manualRefresh;
@@ -745,10 +721,12 @@ window.addEventListener('load', async () => {
 
 // Добавляем слушатели для фильтров
 document.addEventListener('DOMContentLoaded', () => {
+    const statusFilter = document.getElementById('statusFilter');
     const clubFilter = document.getElementById('clubFilter');
     const partFilter = document.getElementById('partNumberFilter');
     const searchInput = document.getElementById('searchInput');
     
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
     if (clubFilter) clubFilter.addEventListener('change', applyFilters);
     if (partFilter) partFilter.addEventListener('change', applyFilters);
     if (searchInput) searchInput.addEventListener('keyup', applyFilters);
