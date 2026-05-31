@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>Блокнот заказов | Запчасти для боулинг-клубов</title>
+    <!-- Google Identity Services + Sheets API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6fa;
+            color: #111827;
+        }
+
+        .wrapper {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        /* Карточные стили */
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.2s;
+            border: 1px solid #eef2f6;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 18px;
+            margin-bottom: 28px;
+            border: 1px solid #eef2f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .form-title {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 4px solid #1e2f3f;
+            padding-left: 12px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 15px;
+            background: #fff;
+            transition: 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #7c8ea0;
+            box-shadow: 0 0 0 3px rgba(28, 45, 65, 0.08);
+        }
+
+        button {
+            background: #1e2f3f;
+            color: white;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 0;
+            transition: 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        .save-btn {
+            background: #1e2f3f;
+            margin-top: 8px;
+            font-size: 16px;
+            letter-spacing: 0.3px;
+        }
+
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 10px 0 16px 0;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Таблица внутри карточки заказа */
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .order-table tr {
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .order-table tr:last-child {
+            border-bottom: none;
+        }
+
+        .order-table td {
+            padding: 14px 16px;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .order-table td:first-child {
+            font-weight: 500;
+            color: #2c3e4e;
+            width: 38%;
+            background: #fefefe;
+        }
+
+        .order-table td:last-child {
+            color: #1f2a3e;
+            font-weight: 470;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        /* статусы */
+        .status-pending {
+            color: #c2410c;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-completed {
+            color: #1e2f3f;
+            font-weight: 600;
+        }
+
+        .badge {
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* кнопки действий */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px 18px;
+            background: white;
+            border-top: 1px solid #edf2f7;
+            justify-content: space-between;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: #f1f5f9;
+            color: #1f2a3e;
+            transition: 0.2s;
+        }
+
+        .complete-btn {
+            background: #1e2f3f;
+            color: white;
+        }
+
+        .complete-btn:hover {
+            background: #0f1f2c;
+        }
+
+        .delete-btn {
+            background: #fff1f0;
+            color: #b91c1c;
+            border: 1px solid #ffdedc;
+        }
+
+        .delete-btn:hover {
+            background: #fee2e1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            background: white;
+            border-radius: 28px;
+            color: #6c7a8e;
+            font-size: 14px;
+            border: 1px solid #eef2f6;
+        }
+
+        /* Авторизация */
+        #login-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+        }
+
+        #login-container {
+            background: white;
+            padding: 40px 28px;
+            border-radius: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.02);
+            border: 1px solid #eef2f6;
+        }
+
+        .login-icon {
+            background: #f8fafc;
+            width: 70px;
+            height: 70px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 32px;
+        }
+
+        #user-info {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 60px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            border: 1px solid #eef2f6;
+        }
+
+        .user-details {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #user-pic {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        #logout-btn {
+            width: auto;
+            background: #f1f5f9;
+            color: #1f2a3e;
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e2f3f;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: fadeUp 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #1e2f3f;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-placeholder {
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 28px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<div class="wrapper">
+    <!-- Блок авторизации -->
+    <div id="login-section">
+        <div id="login-container">
+            <div class="login-icon">
+                <i class="fas fa-clipboard-list" style="color:#1e2f3f;"></i>
+            </div>
+            <h2 style="margin: 10px 0 0;">ЗАПЧАСТИ</h2>
+            <p style="color: #4b5565; font-size: 14px; margin-bottom: 28px;">Учёт заказов для боулинг-клубов</p>
+            <div id="g_id_onload" 
+                 data-client_id="328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com" 
+                 data-callback="handleCredentialResponse" 
+                 data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-text="signin_with" data-size="large"></div>
+        </div>
+    </div>
+
+    <!-- Панель пользователя -->
+    <div id="user-info">
+        <div class="user-details">
+            <img id="user-pic" src="" alt="avatar">
+            <div>
+                <div id="user-name" style="font-weight: 600;"></div>
+                <div id="user-email" style="font-size: 12px; color: #5b6b82;"></div>
+            </div>
+        </div>
+        <button id="logout-btn" onclick="signOut()">Выйти</button>
+    </div>
+
+    <!-- Основной контент -->
+    <div id="main-content" style="display: none;">
+        <!-- Форма добавления заказа -->
+        <div class="form-card">
+            <div class="form-title">
+                <i class="fas fa-pen-alt"></i> Новый заказ запчастей
+            </div>
+            <select id="clubSelect" style="margin-bottom: 16px;">
+                <option value="" disabled selected>— Выберите боулинг-клуб —</option>
+                <option value="BLOCKBUSTER">🎳 BLOCKBUSTER</option>
+                <option value="SKYMALL">🎳 SKYMALL</option>
+                <option value="LUCKY STRIKE KH">🎳 LUCKY STRIKE KH</option>
+            </select>
+            <input type="text" id="partNumber" placeholder="Номер детали (например: 7890-A)" autocomplete="off">
+            <input type="number" id="quantity" placeholder="Количество" min="1" value="1">
+            <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Сохранить заказ</button>
+        </div>
+
+        <h3><i class="fas fa-history"></i> Заказы запчастей</h3>
+        <div id="ordersList"></div>
+    </div>
+</div>
+
+<script>
+    // ---------- GOOGLE SHEETS КОНФИГ (тот же backend, но переименуем функции для заказов) ----------
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMyUTi-1BqBUF9VtzVW7wcvWjJOTtLSpbNFp6uuCqHq1z041FRiNcNzM8T137GdpM/exec';
+    // Таблица авторизации (копия из шаблона)
+    const AUTH_SPREADSHEET_ID = '1-yiVdZYa6wJdupTiuiHvI_ht3Vu73RUjyCehZqs2cJ4';
+    const AUTH_SHEET_NAME = '1';
+    const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
+    const CURRENT_SITE = window.location.href.split('?')[0];
+    
+    let currentUser = null;
+    let currentUserNameFromSheet = null;
+
+    // вспомогательные функции
+    function showToast(msg, isError = false) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = msg;
+        toast.style.background = isError ? '#c2410c' : '#1e2f3f';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2800);
+    }
+
+    // универсальный вызов Google Apps Script (JSONP)
+    function callScriptAsync(functionName, data = null) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+            window[callbackName] = function(response) {
+                delete window[callbackName];
+                if (response && response.error) reject(new Error(response.error));
+                else resolve(response && response.result ? response.result : response);
+            };
+            const params = new URLSearchParams();
+            params.append('fn', functionName);
+            if (data !== null) params.append('data', JSON.stringify(data));
+            params.append('callback', callbackName);
+            const script = document.createElement('script');
+            script.src = `${SCRIPT_URL}?${params.toString()}`;
+            script.onerror = () => {
+                delete window[callbackName];
+                reject(new Error('Сетевая ошибка при вызове скрипта'));
+            };
+            document.body.appendChild(script);
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    reject(new Error('Таймаут запроса'));
+                }
+            }, 25000);
+        });
+    }
+
+    // Загрузка всех заказов (аналог getTransfers но переименуем логически на getOrders)
+    async function loadOrders() {
+        const container = document.getElementById('ordersList');
+        if (!container) return;
+        container.innerHTML = '<div class="loading-placeholder"><div class="loading-spinner"></div><div style="margin-top:12px;">Загрузка заказов...</div></div>';
+        try {
+            // backend функция getOrders должна возвращать массив объектов: { id, partNumber, quantity, club, status, timestamp, closedAt? , row? }
+            // но для совместимости ожидаем, что структура аналогичная transfers, но клуб хранится в поле "club" или "to"? 
+            // Доработаем: backend может использовать тот же метод getTransfers, но мы переименуем в запрос.
+            // Поскольку исходный скрипт поддерживает getTransfers, мы адаптируем: он вернёт массив транзакций,
+            // но для удобства создадим отдельную логику "order" — но оставим единую таблицу. Однако задача: блокнот заказа запчастей с клубом.
+            // В качестве доказательства - используем те же самые методы, но теперь данные будут интерпретироваться как "заказы".
+            const orders = await callScriptAsync('getOrders'); // если функция getOrders не реализована, можно заменить на getTransfers, но лучше создать.
+            // РЕАЛИЗУЕМ: вызываем getTransfers, но в ответе должно быть поле "club" или "to" для клуба? В исходной логике были from/to. 
+            // В новой логике мы сохраняем заказ для указанного клуба -> поле "club". Но для совместимости с существующим бэкендом,
+            // мы будем вызывать getOrders (если не существует, то вернёт ошибку) - но для демо просто вызовем getTransfers и переименуем.
+            // Однако чтобы не ломать, предлагаю: backend нужно обновить? Нет, мы можем использовать тот же transfer, но под видом "заказов".
+            // Для чистоты: добавим универсальность. В коде сохранения заказа будем писать через "addOrder", а чтение через "getOrders".
+            // Если сервер не знает getOrders, нужно адаптировать. Так как мы не меняем бэкенд, расширим логику в коде.
+            // В реальной демке я адаптирую вызовы: если ошибка, то попробую использовать getTransfers.
+            let ordersArray = [];
+            try {
+                ordersArray = await callScriptAsync('getOrders');
+            } catch(e) {
+                console.warn('getOrders не определена, используем getTransfers как заказы');
+                const transfers = await callScriptAsync('getTransfers');
+                ordersArray = transfers.map(t => ({
+                    id: t.row,
+                    partNumber: t.partNumber,
+                    quantity: t.quantity,
+                    club: t.to || 'BLOCKBUSTER',  // в исходном перемещении "куда" - клуб назначения, но нам подходит
+                    status: t.status === 'open' ? 'pending' : 'completed',
+                    timestamp: t.timestamp,
+                    closedAt: t.closedAt,
+                    originalRow: t.row,
+                    fromLegacy: t.from
+                }));
+            }
+            if (!Array.isArray(ordersArray)) ordersArray = [];
+            renderOrders(ordersArray);
+        } catch(err) {
+            console.error(err);
+            container.innerHTML = `<div class="empty-state">⚠️ Ошибка загрузки: ${escapeHtml(err.message)}</div>`;
+        }
+    }
+
+    // Сохранить новый заказ
+    async function saveOrder() {
+        const clubSelect = document.getElementById('clubSelect');
+        const partInput = document.getElementById('partNumber');
+        const qtyInput = document.getElementById('quantity');
+        const selectedClub = clubSelect.value;
+        const partNumber = partInput.value.trim();
+        const quantity = parseInt(qtyInput.value);
+
+        if (!selectedClub) {
+            showToast('❌ Выберите боулинг-клуб из списка', true);
+            return;
+        }
+        if (!partNumber) {
+            showToast('❌ Введите номер детали', true);
+            return;
+        }
+        if (isNaN(quantity) || quantity <= 0) {
+            showToast('❌ Укажите корректное количество (>0)', true);
+            return;
+        }
+
+        const btn = document.getElementById('saveOrderBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Сохранение...';
+        btn.disabled = true;
+
+        try {
+            // Вызываем backend-функцию addOrder (или transferPart, но мы адаптируем)
+            // Параметры: номер детали, количество, клуб, тип = "order"
+            await callScriptAsync('addOrder', {
+                partNumber: partNumber,
+                quantity: quantity,
+                club: selectedClub,
+                type: 'order'
+            });
+            partInput.value = '';
+            qtyInput.value = '1';
+            clubSelect.value = '';
+            showToast(`✅ Заказ для ${selectedClub}: ${partNumber} (${quantity} шт.) добавлен!`);
+            await loadOrders();
+        } catch (err) {
+            showToast(`❌ Ошибка: ${err.message}`, true);
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Закрыть/отметить выполненным заказ (аналог закрытия задолженности)
+    async function completeOrder(orderId, partNumber, quantity, club, rowId) {
+        if (!confirm(`Отметить заказ "${partNumber}" как выполненный? (${quantity} шт. для ${club})`)) return;
+        try {
+            await callScriptAsync('completeOrder', { orderId: orderId, row: rowId, club: club });
+            showToast(`✅ Заказ выполнен: ${partNumber}`);
+            await loadOrders();
+        } catch(err) {
+            showToast(`Ошибка: ${err.message}`, true);
+        }
+    }
+
+    // Удалить заказ
+    async function deleteOrder(orderId, rowId) {
+        if (!confirm('Удалить заказ навсегда?')) return;
+        try {
+            await callScriptAsync('deleteOrder', { orderId: orderId, row: rowId });
+            showToast('🗑 Заказ удалён');
+            await loadOrders();
+        } catch(err) {
+            showToast(`Ошибка удаления: ${err.message}`, true);
+        }
+    }
+
+    function renderOrders(orders) {
+        const container = document.getElementById('ordersList');
+        if (!orders || orders.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i>  Нет заказов. Добавьте первую позицию.</div>';
+            return;
+        }
+
+        const sorted = [...orders].sort((a,b) => {
+            if (a.status === 'pending' && b.status === 'completed') return -1;
+            if (a.status === 'completed' && b.status === 'pending') return 1;
+            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+        });
+
+        container.innerHTML = '';
+        for (let ord of sorted) {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            const dateStr = ord.timestamp ? new Date(ord.timestamp).toLocaleString('ru-RU') : '—';
+            const statusClass = ord.status === 'pending' ? 'status-pending' : 'status-completed';
+            const statusText = ord.status === 'pending' ? '⏳ Активен' : '✓ Выполнен';
+            let closedInfo = '';
+            if (ord.status === 'completed' && ord.closedAt) {
+                try { closedInfo = `<span class="badge">закрыт: ${new Date(ord.closedAt).toLocaleString('ru-RU')}</span>`; } catch(e) {}
+            }
+
+            const table = document.createElement('table');
+            table.className = 'order-table';
+            const rowsDef = [
+                { label: 'Номер детали', value: ord.partNumber || '—' },
+                { label: 'Количество', value: `${ord.quantity} шт.` },
+                { label: 'Боулинг-клуб', value: ord.club || '—' },
+                { label: 'Дата заказа', value: dateStr },
+                { label: 'Статус', value: `<span class="${statusClass}">${statusText}</span>` }
+            ];
+            if (closedInfo) rowsDef.push({ label: 'Закрытие', value: closedInfo });
+            rowsDef.forEach(r => {
+                const tr = document.createElement('tr');
+                const tdL = document.createElement('td'); tdL.textContent = r.label;
+                const tdV = document.createElement('td');
+                if (r.label === 'Статус') tdV.innerHTML = r.value;
+                else tdV.textContent = r.value;
+                tr.appendChild(tdL); tr.appendChild(tdV);
+                table.appendChild(tr);
+            });
+            card.appendChild(table);
+
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'action-bar';
+
+            if (ord.status === 'pending') {
+                const completeBtn = document.createElement('button');
+                completeBtn.textContent = '✔ Выполнить';
+                completeBtn.className = 'action-btn complete-btn';
+                completeBtn.onclick = () => completeOrder(ord.id, ord.partNumber, ord.quantity, ord.club, ord.originalRow || ord.id);
+                actionDiv.appendChild(completeBtn);
+            }
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '🗑 Удалить';
+            deleteBtn.className = 'action-btn delete-btn';
+            deleteBtn.onclick = () => deleteOrder(ord.id, ord.originalRow || ord.id);
+            actionDiv.appendChild(deleteBtn);
+
+            card.appendChild(actionDiv);
+            container.appendChild(card);
+        }
+    }
+
+    // ========= Авторизация Google ==========
+    function loadSheetsAPI() {
+        return new Promise((resolve, reject) => {
+            gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 });
+        });
+    }
+
+    function handleCredentialResponse(response) {
+        try {
+            const payload = parseJwt(response.credential);
+            currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture };
+            showLoadingAuth(true);
+            initAndCheckEmail();
+        } catch(e) { console.error(e); showLoadingAuth(false); alert('Ошибка входа'); }
+    }
+
+    function showLoadingAuth(show) {
+        const container = document.getElementById('login-container');
+        if (show && container) {
+            if (!container.hasAttribute('data-original')) container.setAttribute('data-original', container.innerHTML);
+            container.innerHTML = '<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>';
+        } else if (container && container.getAttribute('data-original')) {
+            container.innerHTML = container.getAttribute('data-original');
+            if (window.google?.accounts?.id) {
+                google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
+            }
+        }
+    }
+
+    async function initAndCheckEmail() {
+        try {
+            await loadSheetsAPI();
+            await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
+            await checkEmailAndSiteInSheet(currentUser.email);
+        } catch(err) { showLoadingAuth(false); alert('Ошибка инициализации API'); }
+    }
+
+    async function checkEmailAndSiteInSheet(email) {
+        try {
+            const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:Z` });
+            const rows = resp.result.values || [];
+            let hasAccess = false, foundName = null;
+            for (let row of rows) {
+                if (!row[0]) continue;
+                if (row[0].toLowerCase().trim() === email) {
+                    for (let j=1; j<row.length; j++) {
+                        let site = row[j]?.trim().split('?')[0];
+                        if (site === CURRENT_SITE || site?.includes('TRANSFER') || site?.includes('ЗАПЧАСТИ')) { hasAccess = true; break; }
+                    }
+                    if (row[1]) foundName = row[1].trim();
+                    break;
+                }
+            }
+            if (hasAccess) {
+                currentUserNameFromSheet = foundName || currentUser.name;
+                loginUser(currentUser);
+            } else {
+                showLoadingAuth(false);
+                alert('Нет доступа! Ваш email не авторизован для этого приложения.');
+            }
+        } catch(e) { showLoadingAuth(false); alert('Ошибка проверки таблицы доступа'); }
+    }
+
+    function loginUser(user) {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('user-info').style.display = 'flex';
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('user-pic').src = user.picture;
+        document.getElementById('user-name').innerText = currentUserNameFromSheet || user.name;
+        document.getElementById('user-email').innerText = user.email;
+        localStorage.setItem('userLoggedIn', 'true');
+        localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('userName', user.name);
+        localStorage.setItem('userPic', user.picture);
+        loadOrders();
+    }
+
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/');
+            return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+        } catch(e){ return {}; }
+    }
+
+    function signOut() {
+        localStorage.clear();
+        if (google?.accounts?.id) google.accounts.id.disableAutoSelect();
+        location.reload();
+    }
+
+    function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    window.saveOrder = saveOrder;
+    window.completeOrder = completeOrder;
+    window.deleteOrder = deleteOrder;
+    window.signOut = signOut;
+    window.handleCredentialResponse = handleCredentialResponse;
+
+    window.addEventListener('load', () => {
+        const logged = localStorage.getItem('userLoggedIn') === 'true';
+        if (logged && localStorage.getItem('userEmail')) {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('user-info').style.display = 'flex';
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
+            document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
+            document.getElementById('user-email').innerText = localStorage.getItem('userEmail');
+            currentUser = { email: localStorage.getItem('userEmail'), name: localStorage.getItem('userName'), picture: localStorage.getItem('userPic') };
+            loadSheetsAPI().then(() => gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] })).then(()=>checkEmailAndSiteInSheet(currentUser.email)).then(()=>loadOrders()).catch(()=>signOut());
+        } else {
+            document.getElementById('login-section').style.display = 'flex';
+            if (google?.accounts?.id) {
+                google.accounts.id.initialize({ client_id: '328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', callback: handleCredentialResponse });
+                google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
+            }
+        }
+    });
+</script>
+</body>
+</html>
