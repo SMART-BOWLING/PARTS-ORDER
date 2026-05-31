@@ -154,7 +154,13 @@ body {
     transform: scale(.96);
 }
 
-/* Кнопка добавления позиции (стилизованная под пример и исходную кнопку) */
+/* --- НОВАЯ СТРОКА С КНОПКАМИ: "Добавить" + "Заказать" в одной строке --- */
+.double-action-row {
+    display: flex;
+    gap: 14px;
+    margin: 8px 0 6px 0;
+    align-items: center;
+}
 .add-position-btn {
     background: #f0f2f5;
     border: 1px dashed #8a9bb0;
@@ -163,39 +169,37 @@ body {
     border-radius: 40px;
     font-size: 15px;
     font-weight: 500;
-    width: 100%;
-    margin: 8px 0 18px 0;
     cursor: pointer;
     transition: 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    flex: 1;
 }
 .add-position-btn:hover {
     background: #e6e9ef;
     border-color: var(--dark);
 }
-
-/* Группа кнопок (сохранить + обновить) */
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 8px;
-}
-.save-btn {
+.save-order-btn-inline {
     background: var(--dark);
     color: white;
     font-weight: 600;
     border: none;
     cursor: pointer;
-    padding: 14px 16px;
+    padding: 12px 16px;
     border-radius: 40px;
     font-size: 16px;
     transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
 }
-.save-btn:active { transform: scale(0.98); }
+.save-order-btn-inline:active { transform: scale(0.98); }
+
+/* Кнопка открыть список заказов остаётся снизу */
 .refresh-btn-under {
     background: var(--dark);
     color: white;
@@ -206,6 +210,7 @@ body {
     cursor: pointer;
     border: none;
     width: 100%;
+    margin-top: 12px;
 }
 
 /* Стили для списка заказов (оставляем изначальные, но немного осовремениваем) */
@@ -432,6 +437,7 @@ body {
     .field i { left: 12px; }
     .part-input { padding-left: 36px; }
     .form-card { padding: 16px; }
+    .double-action-row { gap: 10px; }
 }
 </style>
 </head>
@@ -466,13 +472,14 @@ body {
             <!-- Контейнер для динамических строк (part-row) -->
             <div id="itemsContainer" class="items-list"></div>
             
-            <!-- Кнопка добавления позиции -->
-            <button type="button" id="addItemBtn" class="add-position-btn"><i class="fas fa-plus-circle"></i> Добавить позицию</button>
-            
-            <div class="button-group">
-                <button id="saveOrderBtn" class="save-btn" onclick="saveOrder()"><i class="fas fa-save"></i> Оформить заказ</button>
-                <button class="refresh-btn-under" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Открыть список заказов</button>
+            <!-- НОВАЯ СТРОКА: Две кнопки в ряд: Добавить + Заказать -->
+            <div class="double-action-row">
+                <button type="button" id="addItemBtn" class="add-position-btn"><i class="fas fa-plus-circle"></i> Добавить</button>
+                <button id="saveOrderInlineBtn" class="save-order-btn-inline"><i class="fas fa-shopping-cart"></i> Заказать</button>
             </div>
+            
+            <!-- кнопка "Открыть список заказов" отдельно (оставлена снизу для удобства) -->
+            <button class="refresh-btn-under" onclick="manualRefresh()"><i class="fas fa-sync-alt"></i> Открыть список заказов</button>
         </div>
         
         <div id="filterSearchBlock" class="filter-search-container">
@@ -499,7 +506,7 @@ let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
-// ---- Управление динамическими позициями (part-row style) ИСПРАВЛЕНО ----
+// ---- Управление динамическими позициями (part-row style) ----
 let itemCounter = 0;
 let currentItems = []; // { id, partNumber, quantity }
 
@@ -507,17 +514,15 @@ function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
     if (currentItems.length === 0) {
-        container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px; font-size:14px;">Нет позиций, нажмите "Добавить позицию"</div>';
+        container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px; font-size:14px;">Нет позиций, нажмите "Добавить"</div>';
         return;
     }
     container.innerHTML = '';
     currentItems.forEach((item, idx) => {
-        // Создаём структуру .part-row в точности из эталонного кода
         const rowDiv = document.createElement('div');
         rowDiv.className = 'part-row';
         rowDiv.dataset.id = item.id;
         
-        // Левое поле (с иконкой)
         const fieldDiv = document.createElement('div');
         fieldDiv.className = 'field';
         const icon = document.createElement('i');
@@ -532,20 +537,16 @@ function renderItems() {
         fieldDiv.appendChild(icon);
         fieldDiv.appendChild(partInput);
         
-        // Поле количества - ИСПРАВЛЕНО
         const qtyInput = document.createElement('input');
         qtyInput.type = 'number';
         qtyInput.className = 'qty-input';
         qtyInput.placeholder = 'Qty';
         qtyInput.min = 1;
         
-        // ВАЖНО: устанавливаем value из item.quantity, если он есть и > 0
-        // Иначе оставляем пустым
         if (item.quantity && item.quantity > 0) {
             qtyInput.value = item.quantity;
         } else {
             qtyInput.value = '';
-            // Если quantity не установлен или 0, инициализируем null
             if (!item.quantity || item.quantity <= 0) {
                 item.quantity = null;
             }
@@ -566,12 +567,10 @@ function renderItems() {
             }
         });
         
-        // Кнопка удаления (стиль .delete-btn)
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
         delBtn.title = 'Удалить позицию';
         delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-        // Если осталась последняя позиция, не даём удалить — пользователь должен либо заполнить, либо добавить новые
         if (currentItems.length === 1) {
             delBtn.style.opacity = '0.5';
             delBtn.style.cursor = 'not-allowed';
@@ -592,7 +591,7 @@ function addNewItem() {
     currentItems.push({
         id: newId,
         partNumber: '',
-        quantity: null  // ИСПРАВЛЕНО: явно устанавливаем null вместо 1
+        quantity: null
     });
     renderItems();
 }
@@ -612,7 +611,6 @@ function removeItem(id) {
 function resetItemsToDefault() {
     currentItems = [];
     itemCounter = 0;
-    // Добавляем одну позицию с пустым количеством
     currentItems.push({
         id: Date.now() + itemCounter++,
         partNumber: '',
@@ -713,7 +711,7 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
 }
 async function manualRefresh() { await loadOrders(true); }
 
-// ----- СОХРАНЕНИЕ ВСЕХ ПОЗИЦИЙ (каждая позиция — отдельной строкой в таблице) -----
+// ----- СОХРАНЕНИЕ ВСЕХ ПОЗИЦИЙ (каждая позиция — отдельной строкой) -----
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
     if (!club) { showToast('Выберите боулинг-клуб', true); return; }
@@ -725,9 +723,9 @@ async function saveOrder() {
         }
     }
     if (itemsToSave.length === 0) { showToast('Нет заполненных позиций для сохранения', true); return; }
-    const btn = document.getElementById('saveOrderBtn');
+    const btn = document.getElementById('saveOrderInlineBtn');
     const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Сохранение...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Заказ...';
     btn.disabled = true;
     try {
         const now = new Date();
@@ -830,6 +828,9 @@ window.saveOrder = saveOrder; window.updateStatus = updateStatus; window.deleteO
 window.addEventListener('load', async () => {
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
+    const saveInline = document.getElementById('saveOrderInlineBtn');
+    if(saveInline) saveInline.addEventListener('click', saveOrder);
+    
     const logged = localStorage.getItem('userLoggedIn') === 'true';
     const savedEmail = localStorage.getItem('userEmail');
     if (logged && savedEmail) {
