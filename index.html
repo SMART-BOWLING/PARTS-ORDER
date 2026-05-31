@@ -83,7 +83,7 @@ button:disabled{opacity:0.6;transform:none;}
 </div>
 <script>
 // ==================== КОНФИГУРАЦИЯ ====================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynGbGk5X1oWoKCJlmdahxTSIbwkR7nxZ5ujSxg6ifNtz8RjKPWNcLHCZ_PGfsYJzsJSw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzfkqhvxa-jQl96hfzp0eE7LsXkM0TG0Uevp9v_MoRTbMDG0qLE-1cyenuRPpQW398r7g/exec';
 
 const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
 const AUTH_SHEET_NAME = 'PARTS ORDER';
@@ -92,6 +92,7 @@ const CURRENT_SITE = window.location.href.split('?')[0];
 
 let currentUser = null;
 let currentUserNameFromSheet = null;
+let allOrders = []; // Храним все заказы для быстрого обновления
 
 function showToast(msg, isError) {
     const toast = document.createElement('div');
@@ -133,9 +134,11 @@ async function loadOrders() {
     try {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
-        renderOrders(Array.isArray(orders) ? orders : []);
+        allOrders = Array.isArray(orders) ? orders : [];
+        renderOrders(allOrders);
     } catch(err) {
-        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}</div>`;
+        console.error('Ошибка загрузки:', err);
+        container.innerHTML = `<div class="empty-state">⚠️ Ошибка: ${escapeHtml(err.message)}<br><button onclick="loadOrders()" style="margin-top:15px;width:auto;padding:8px 20px;">Повторить</button></div>`;
     }
 }
 
@@ -157,7 +160,7 @@ async function saveOrder() {
         document.getElementById('partNumber').value = '';
         document.getElementById('quantity').value = '1';
         document.getElementById('clubSelect').value = '';
-        await loadOrders();
+        await loadOrders(); // Асинхронно обновляем список
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
     } finally {
@@ -166,26 +169,92 @@ async function saveOrder() {
     }
 }
 
-async function updateStatus(row, newStatus) {
+async function updateStatus(row, newStatus, selectElement) {
+    // Блокируем select на время обновления
+    const originalText = selectElement.innerHTML;
+    selectElement.disabled = true;
+    selectElement.style.opacity = '0.6';
+    
     try {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
+        
+        // Обновляем статус в локальном массиве
+        const orderIndex = allOrders.findIndex(order => order.row === row);
+        if (orderIndex !== -1) {
+            allOrders[orderIndex].status = newStatus;
+        }
+        
+        // Асинхронно обновляем интерфейс без перезагрузки всей страницы
+        updateOrderStatusInDOM(row, newStatus);
         showToast(`✅ Статус изменён на "${newStatus}"`);
-        await loadOrders();
     } catch(err) {
         showToast(`❌ Ошибка: ${err.message}`, true);
+        // Возвращаем предыдущее значение в случае ошибки
+        const previousStatus = newStatus === 'Активно' ? 'Доставлено' : 'Активно';
+        selectElement.value = previousStatus;
+    } finally {
+        selectElement.disabled = false;
+        selectElement.style.opacity = '1';
     }
 }
 
-async function deleteOrder(row) {
+async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
+    
+    // Визуально удаляем карточку сразу для лучшего UX
+    const card = cardElement.closest('.card');
+    if (card) {
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+    }
+    
     try {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
+        
+        // Удаляем заказ из локального массива
+        const orderIndex = allOrders.findIndex(order => order.row === row);
+        if (orderIndex !== -1) {
+            allOrders.splice(orderIndex, 1);
+        }
+        
+        // Асинхронно удаляем карточку из DOM
+        if (card) {
+            card.remove();
+        }
+        
+        // Проверяем, остались ли заказы
+        if (allOrders.length === 0) {
+            document.getElementById('ordersList').innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов. Добавьте первую позицию.</div>';
+        }
+        
         showToast('🗑 Заказ удалён');
-        await loadOrders();
     } catch(err) {
         showToast(`Ошибка: ${err.message}`, true);
+        if (card) {
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+        }
+    }
+}
+
+function updateOrderStatusInDOM(row, newStatus) {
+    // Находим select элемент для этого заказа и обновляем его класс
+    const selectElements = document.querySelectorAll('.status-select');
+    for (let select of selectElements) {
+        const onchangeAttr = select.getAttribute('onchange');
+        if (onchangeAttr && onchangeAttr.includes(`updateStatus(${row}`)) {
+            select.value = newStatus;
+            // Обновляем класс для стилизации
+            select.classList.remove('status-pending', 'status-delivered');
+            if (newStatus === 'Активно') {
+                select.classList.add('status-pending');
+            } else {
+                select.classList.add('status-delivered');
+            }
+            break;
+        }
     }
 }
 
@@ -197,9 +266,13 @@ function renderOrders(orders) {
     }
     container.innerHTML = '';
     orders.forEach(order => {
-        const card = document.createElement('div'); card.className = 'card';
+        const card = document.createElement('div'); 
+        card.className = 'card';
+        card.setAttribute('data-row', order.row);
+        
         const dateStr = order.timestamp ? new Date(order.timestamp).toLocaleString('ru-RU') : '—';
-        const table = document.createElement('table'); table.className = 'order-table';
+        const table = document.createElement('table'); 
+        table.className = 'order-table';
         
         const currentStatus = order.status || 'Активно';
         
@@ -207,28 +280,42 @@ function renderOrders(orders) {
             { label: 'Номер детали', value: order.partNumber || '—' },
             { label: 'Количество', value: `${order.quantity} шт.` },
             { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата заказа', value: dateStr },
-            { 
-                label: 'Статус', 
-                value: `
-                    <select class="status-select ${currentStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}" 
-                            onchange="updateStatus(${order.row}, this.value)">
-                        <option value="Активно" ${currentStatus === 'Активно' ? 'selected' : ''}>🟠 Активно</option>
-                        <option value="Доставлено" ${currentStatus === 'Доставлено' ? 'selected' : ''}>✅ Доставлено</option>
-                    </select>
-                `
-            }
+            { label: 'Дата заказа', value: dateStr }
         ];
         
         rows.forEach(r => {
             const tr = document.createElement('tr');
-            const tdL = document.createElement('td'); tdL.textContent = r.label;
+            const tdL = document.createElement('td'); 
+            tdL.textContent = r.label;
             const tdV = document.createElement('td');
-            if (r.label === 'Статус') tdV.innerHTML = r.value;
-            else tdV.textContent = r.value;
-            tr.appendChild(tdL); tr.appendChild(tdV);
+            tdV.textContent = r.value;
+            tr.appendChild(tdL); 
+            tr.appendChild(tdV);
             table.appendChild(tr);
         });
+        
+        // Добавляем строку статуса с select
+        const statusTr = document.createElement('tr');
+        const statusTdL = document.createElement('td');
+        statusTdL.textContent = 'Статус';
+        const statusTdV = document.createElement('td');
+        
+        const select = document.createElement('select');
+        select.className = `status-select ${currentStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
+        select.innerHTML = `
+            <option value="Активно" ${currentStatus === 'Активно' ? 'selected' : ''}>🟠 Активно</option>
+            <option value="Доставлено" ${currentStatus === 'Доставлено' ? 'selected' : ''}>✅ Доставлено</option>
+        `;
+        select.onchange = (e) => {
+            e.stopPropagation();
+            updateStatus(order.row, select.value, select);
+        };
+        
+        statusTdV.appendChild(select);
+        statusTr.appendChild(statusTdL);
+        statusTr.appendChild(statusTdV);
+        table.appendChild(statusTr);
+        
         card.appendChild(table);
         
         const actionDiv = document.createElement('div'); 
@@ -236,25 +323,42 @@ function renderOrders(orders) {
         const deleteBtn = document.createElement('button'); 
         deleteBtn.textContent = '🗑 Удалить'; 
         deleteBtn.className = 'action-btn delete-btn';
-        deleteBtn.onclick = () => deleteOrder(order.row);
+        deleteBtn.onclick = () => deleteOrder(order.row, card);
         actionDiv.appendChild(deleteBtn);
         card.appendChild(actionDiv);
         container.appendChild(card);
     });
 }
 
-function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+function escapeHtml(str) { 
+    if(!str) return ''; 
+    return String(str).replace(/[&<>]/g, function(m){
+        if(m==='&') return '&amp;'; 
+        if(m==='<') return '&lt;'; 
+        if(m==='>') return '&gt;'; 
+        return m;
+    }); 
+}
 
 // ========== АВТОРИЗАЦИЯ ==========
-function loadSheetsAPI() { return new Promise((resolve, reject) => { gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); }); }
+function loadSheetsAPI() { 
+    return new Promise((resolve, reject) => { 
+        gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); 
+    }); 
+}
+
 function handleCredentialResponse(response) {
     try {
         const payload = parseJwt(response.credential);
         currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture };
         showLoadingAuth(true);
         initAndCheckEmail();
-    } catch(e) { showLoadingAuth(false); alert('Ошибка входа'); }
+    } catch(e) { 
+        showLoadingAuth(false); 
+        alert('Ошибка входа'); 
+    }
 }
+
 function showLoadingAuth(show) {
     const container = document.getElementById('login-container');
     if (show && container) {
@@ -262,31 +366,54 @@ function showLoadingAuth(show) {
         container.innerHTML = '<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>';
     } else if (container && container.getAttribute('data-original')) {
         container.innerHTML = container.getAttribute('data-original');
-        if (window.google?.accounts?.id) google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
+        if (window.google?.accounts?.id) {
+            google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { 
+                type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' 
+            });
+        }
     }
 }
+
 async function initAndCheckEmail() {
     try {
         await loadSheetsAPI();
         await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
         await checkEmailAndSiteInSheet(currentUser.email);
-    } catch(err) { showLoadingAuth(false); alert('Ошибка API'); }
+    } catch(err) { 
+        showLoadingAuth(false); 
+        alert('Ошибка API: ' + err.message); 
+    }
 }
+
 async function checkEmailAndSiteInSheet(email) {
     try {
-        const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` });
+        const resp = await gapi.client.sheets.spreadsheets.values.get({ 
+            spreadsheetId: AUTH_SPREADSHEET_ID, 
+            range: `${AUTH_SHEET_NAME}!A:C` 
+        });
         const rows = resp.result.values || [];
         let hasAccess = false, foundName = null;
         for (let row of rows) {
             if (!row[0]) continue;
-            if (row[0].toLowerCase().trim() === email) { hasAccess = true; if(row[1]) foundName = row[1]; break; }
+            if (row[0].toLowerCase().trim() === email) { 
+                hasAccess = true; 
+                if(row[1]) foundName = row[1]; 
+                break; 
+            }
         }
         if (hasAccess) {
             currentUserNameFromSheet = foundName || currentUser.name;
             loginUser(currentUser);
-        } else { showLoadingAuth(false); alert('Нет доступа! Ваш email не авторизован.'); }
-    } catch(e) { showLoadingAuth(false); alert('Ошибка проверки таблицы'); }
+        } else { 
+            showLoadingAuth(false); 
+            alert('Нет доступа! Ваш email не авторизован.'); 
+        }
+    } catch(e) { 
+        showLoadingAuth(false); 
+        alert('Ошибка проверки таблицы: ' + e.message); 
+    }
 }
+
 function loginUser(user) {
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('user-info').style.display = 'flex';
@@ -300,20 +427,30 @@ function loginUser(user) {
     localStorage.setItem('userPic', user.picture);
     loadOrders();
 }
+
 function parseJwt(token) {
     try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/');
         return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-    } catch(e){ return {}; }
+    } catch(e){ 
+        return {}; 
+    }
 }
-function signOut() { localStorage.clear(); if(google?.accounts?.id) google.accounts.id.disableAutoSelect(); location.reload(); }
 
+function signOut() { 
+    localStorage.clear(); 
+    if(google?.accounts?.id) google.accounts.id.disableAutoSelect(); 
+    location.reload(); 
+}
+
+// Глобальные функции для вызова из onclick
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
 window.signOut = signOut;
 window.handleCredentialResponse = handleCredentialResponse;
+window.loadOrders = loadOrders;
 
 window.addEventListener('load', () => {
     const logged = localStorage.getItem('userLoggedIn') === 'true';
@@ -324,13 +461,31 @@ window.addEventListener('load', () => {
         document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
         document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
         document.getElementById('user-email').innerText = localStorage.getItem('userEmail');
-        currentUser = { email: localStorage.getItem('userEmail'), name: localStorage.getItem('userName'), picture: localStorage.getItem('userPic') };
-        loadSheetsAPI().then(() => gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] })).then(()=>checkEmailAndSiteInSheet(currentUser.email)).then(()=>loadOrders()).catch(()=>signOut());
+        currentUser = { 
+            email: localStorage.getItem('userEmail'), 
+            name: localStorage.getItem('userName'), 
+            picture: localStorage.getItem('userPic') 
+        };
+        
+        // Инициализация API и загрузка заказов при загрузке страницы
+        loadSheetsAPI()
+            .then(() => gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] }))
+            .then(() => checkEmailAndSiteInSheet(currentUser.email))
+            .then(() => loadOrders())
+            .catch((err) => {
+                console.error('Ошибка инициализации:', err);
+                signOut();
+            });
     } else {
         document.getElementById('login-section').style.display = 'flex';
         if (google?.accounts?.id) {
-            google.accounts.id.initialize({ client_id: '328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', callback: handleCredentialResponse });
-            google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' });
+            google.accounts.id.initialize({ 
+                client_id: '328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', 
+                callback: handleCredentialResponse 
+            });
+            google.accounts.id.renderButton(document.querySelector('.g_id_signin'), { 
+                type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' 
+            });
         }
     }
 });
