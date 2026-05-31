@@ -21,8 +21,8 @@ button:disabled{opacity:0.6;transform:none;}
 .card{background:#ffffff;border-radius:24px;box-shadow:0 4px 12px rgba(0,0,0,0.03);margin-bottom:16px;overflow:hidden;border:1px solid #eef2f6;transition:all 0.3s ease;}
 .card.new-order{animation:highlightNew 0.8s ease;}
 @keyframes highlightNew{
-    0%{background:#fff8e7; transform:scale(0.98); opacity:0.5;}
-    50%{background:#fff0c0; transform:scale(1);}
+    0%{background:#fff; transform:scale(0.98); opacity:0.5;}
+    50%{background:#fff; transform:scale(1);}
     100%{background:#ffffff; opacity:1;}
 }
 .order-table{width:100%;border-collapse:collapse;}
@@ -470,7 +470,7 @@ function renderOrders(orders) {
             { label: 'Номер детали', value: order.partNumber || '—' },
             { label: 'Количество', value: `${order.quantity} шт.` },
             { label: 'Боулинг-клуб', value: order.club || '—' },
-            { label: 'Дата и время заказа', value: dateStr }
+            { label: 'Дата и время', value: dateStr }
         ];
         
         rows.forEach(r => {
