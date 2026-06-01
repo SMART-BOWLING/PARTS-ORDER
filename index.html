@@ -5,8 +5,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Блокнот заказов запчастей — Мультипозиции</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="https://apis.google.com/js/api.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -37,7 +35,7 @@ body {
 /* ----- ВСЕ СКРУГЛЕНИЯ МИНИМАЛЬНЫЕ (4-8px) ----- */
 .form-card {
     background: var(--white);
-    border-radius: 8px;           /* было 28px -> 8px */
+    border-radius: 8px;
     padding: 24px 22px;
     margin-bottom: 24px;
     border: 1px solid #eef2f6;
@@ -61,7 +59,7 @@ body {
     padding: 14px 18px;
     margin-bottom: 24px;
     border: 1px solid #e2e8f0;
-    border-radius: 6px;           /* было 24px -> 6px */
+    border-radius: 6px;
     font-size: 16px;
     background: #fff;
     color: var(--dark);
@@ -83,7 +81,7 @@ body {
     padding: 10px;
     background: var(--white);
     border: 1px solid var(--light);
-    border-radius: 6px;           /* было 18px -> 6px */
+    border-radius: 6px;
     margin-bottom: 12px;
     transition: all 0.2s;
 }
@@ -109,7 +107,7 @@ body {
     border: none;
     outline: none;
     background: #f5f6f8;
-    border-radius: 6px;           /* было 14px -> 6px */
+    border-radius: 6px;
     font-size: 16px;
     color: var(--dark);
     transition: .2s;
@@ -135,7 +133,7 @@ body {
     width: 48px;
     height: 48px;
     border: none;
-    border-radius: 6px;           /* было 14px -> 6px */
+    border-radius: 6px;
     background: var(--accent);
     color: var(--white);
     display: flex;
@@ -165,7 +163,7 @@ body {
     border: 1px dashed #8a9bb0;
     color: var(--dark);
     padding: 12px 16px;
-    border-radius: 6px;           /* было 40px -> 6px */
+    border-radius: 6px;
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
@@ -187,7 +185,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 12px 16px;
-    border-radius: 6px;           /* было 40px -> 6px */
+    border-radius: 6px;
     font-size: 16px;
     transition: 0.2s;
     display: flex;
@@ -203,7 +201,7 @@ body {
     background: var(--dark);
     color: white;
     padding: 14px 16px;
-    border-radius: 6px;           /* было 20px -> 6px */
+    border-radius: 6px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -215,7 +213,7 @@ body {
 /* Карточки заказов */
 .card {
     background: var(--white);
-    border-radius: 8px;           /* было 24px -> 8px */
+    border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     margin-bottom: 16px;
     overflow: hidden;
@@ -258,7 +256,7 @@ body {
 }
 .status-select {
     padding: 6px 12px;
-    border-radius: 6px;           /* было 20px -> 6px */
+    border-radius: 6px;
     border: 1px solid #e2e8f0;
     background: white;
     font-size: 13px;
@@ -292,7 +290,7 @@ body {
     width: 100%;
     transition: 0.2s;
     padding: 10px 12px;
-    border-radius: 6px;           /* было 40px -> 6px */
+    border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     text-align: center;
@@ -306,7 +304,7 @@ body {
     text-align: center;
     padding: 48px 20px;
     background: white;
-    border-radius: 8px;           /* было 28px -> 8px */
+    border-radius: 8px;
     color: var(--dark);
     border: 1px solid #eef2f6;
 }
@@ -329,7 +327,7 @@ body {
 .filter-group select {
     width: 100%;
     padding: 10px 12px;
-    border-radius: 6px;           /* было 20px -> 6px */
+    border-radius: 6px;
     font-size: 14px;
     background: #fff;
     cursor: pointer;
@@ -339,7 +337,7 @@ body {
 .search-box {
     width: 100%;
     padding: 12px 16px;
-    border-radius: 6px;           /* было 30px -> 6px */
+    border-radius: 6px;
     border: 1px solid #e2e8f0;
     font-size: 16px;
     margin-bottom: 0;
@@ -370,7 +368,7 @@ body {
     z-index: 1000;
     animation: fadeUp 0.25s ease;
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    border-radius: 6px !important; /* было 0px -> 6px */
+    border-radius: 6px !important;
     text-align: center;
     min-width: 260px;
     max-width: 90vw;
@@ -382,52 +380,6 @@ body {
 @keyframes fadeUp {
     from { opacity: 0; transform: translateX(-50%) translateY(20px); }
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-#login-section {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 500px;
-}
-#login-container {
-    background: white;
-    padding: 40px 28px;
-    border-radius: 8px;           /* было 40px -> 8px */
-    text-align: center;
-    max-width: 400px;
-    width: 100%;
-    border: 1px solid #eef2f6;
-}
-#user-info {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    background: white;
-    padding: 10px 20px;
-    border-radius: 8px;           /* было 60px -> 8px */
-    margin-bottom: 24px;
-    border: 1px solid #eef2f6;
-}
-.user-details {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-#user-pic {
-    width: 42px;
-    height: 42px;
-    border-radius: 8px;           /* было 50% (круг) -> 8px (квадрат с углами) */
-    object-fit: cover;
-}
-#logout-btn {
-    width: auto;
-    background: #f4f6fa;
-    color: var(--dark);
-    padding: 8px 18px;
-    border-radius: 6px;           /* было 40px -> 6px */
-    margin: 0;
-    border: 1px solid #e2e8f0;
-    cursor: pointer;
 }
 @media (max-width: 600px) {
     body { padding: 15px; }
@@ -442,23 +394,7 @@ body {
 </head>
 <body>
 <div class="wrapper">
-    <div id="login-section">
-        <div id="login-container">
-            <div class="login-icon"><i class="fas fa-clipboard-list" style="font-size:40px;color:#1a2f40;"></i></div>
-            <h2 style="color:#1a2f40;">ЗАПЧАСТИ</h2>
-            <p style="color:#4b5565;"></p>
-            <div id="g_id_onload" data-client_id="328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
-            <div class="g_id_signin" data-type="standard" data-shape="pill" data-theme="outline" data-text="signin_with" data-size="large"></div>
-        </div>
-    </div>
-    <div id="user-info">
-        <div class="user-details">
-            <img id="user-pic" src="">
-            <div><div id="user-name" style="font-weight:600;"></div><div id="user-email" style="font-size:12px;color:#5b6b82;"></div></div>
-        </div>
-        <button id="logout-btn" onclick="signOut()">Выйти</button>
-    </div>
-    <div id="main-content" style="display:none;">
+    <div id="main-content">
         <div class="form-card">
             <div class="form-title"><i class="fas fa-pen-alt"></i> Новый заказ запчастей</div>
             <select id="clubSelect" class="club-select">
@@ -491,14 +427,9 @@ body {
 </div>
 
 <script>
-// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS -----
+// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS (без авторизации) -----
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa5IaKN__SXP6WDen5VXxfsHILUpz6Bk2IyuMOlBVLa6SKUR7eEjw2Sjj7Nm6_M4eTgg/exec';
-const AUTH_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
-const AUTH_SHEET_NAME = 'PARTS ORDER';
-const AUTH_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 
-let currentUser = null;
-let currentUserNameFromSheet = null;
 let allOrders = [];
 let isLoading = false;
 
@@ -640,6 +571,7 @@ function showToast(msgHtml, isError = false) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
+
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
     const day = String(date.getDate()).padStart(2, '0');
@@ -650,6 +582,7 @@ function formatDateTime(date) {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
 }
+
 function parseTimestamp(timestamp) {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
@@ -657,6 +590,7 @@ function parseTimestamp(timestamp) {
     if (typeof timestamp === 'number') { let date = new Date(timestamp); if (!isNaN(date)) return date; }
     return null;
 }
+
 function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
 
 function callScriptAsync(functionName, data) {
@@ -703,6 +637,7 @@ async function loadOrders(showLoading = true, highlightNewId = null) {
         showToast(`Ошибка загрузки: ${err.message}`, true);
     } finally { isLoading = false; }
 }
+
 async function manualRefresh() { await loadOrders(true); }
 
 async function saveOrder() {
@@ -751,6 +686,7 @@ async function updateStatus(row, newStatus, selectElement) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectElement.value = originalValue; }
     finally { selectElement.disabled = false; selectElement.style.opacity = '1'; }
 }
+
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
     const card = cardElement.closest('.card');
@@ -763,6 +699,7 @@ async function deleteOrder(row, cardElement) {
         showToast('Заказ удалён');
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
+
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
@@ -775,6 +712,7 @@ function applyFilters() {
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
     renderOrders(filtered);
 }
+
 function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
@@ -807,43 +745,26 @@ function renderOrders(orders) {
         container.appendChild(card);
     });
 }
-function loadSheetsAPI() { return new Promise((resolve, reject) => { gapi.load('client', { callback: resolve, onerror: reject, timeout: 10000 }); }); }
-function handleCredentialResponse(response) { try { const payload = parseJwt(response.credential); currentUser = { email: payload.email.toLowerCase().trim(), name: payload.name, picture: payload.picture }; showLoadingAuth(true); initAndCheckEmail(); } catch(e) { showLoadingAuth(false); alert('Ошибка входа'); } }
-function showLoadingAuth(show) { const c = document.getElementById('login-container'); if(show && c){ if(!c.hasAttribute('data-original')) c.setAttribute('data-original',c.innerHTML); c.innerHTML='<div style="padding:40px;"><div class="loading-spinner"></div><br>Проверка доступа...</div>'; } else if(c && c.getAttribute('data-original')){ c.innerHTML=c.getAttribute('data-original'); if(window.google?.accounts?.id) google.accounts.id.renderButton(document.querySelector('.g_id_signin'),{ type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' }); } }
-async function initAndCheckEmail() { try { await loadSheetsAPI(); await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] }); await checkEmailAndSiteInSheet(currentUser.email); } catch(err) { showLoadingAuth(false); alert('Ошибка API: '+err.message); } }
-async function checkEmailAndSiteInSheet(email) { try { const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` }); const rows = resp.result.values || []; let hasAccess=false, foundName=null; for(let row of rows) if(row[0] && row[0].toLowerCase().trim()===email){ hasAccess=true; if(row[1]) foundName=row[1]; break; } if(hasAccess){ currentUserNameFromSheet = foundName || currentUser.name; loginUser(currentUser); } else { showLoadingAuth(false); alert('Нет доступа! Ваш email не авторизован.'); } } catch(e){ showLoadingAuth(false); alert('Ошибка таблицы: '+e.message); } }
-async function loginUser(user) { document.getElementById('login-section').style.display='none'; document.getElementById('user-info').style.display='flex'; document.getElementById('main-content').style.display='block'; document.getElementById('user-pic').src=user.picture; document.getElementById('user-name').innerText=currentUserNameFromSheet||user.name; document.getElementById('user-email').innerText=user.email; localStorage.setItem('userLoggedIn','true'); localStorage.setItem('userEmail',user.email); localStorage.setItem('userName',user.name); localStorage.setItem('userPic',user.picture); await loadOrders(true); }
-function parseJwt(token) { try { const base64Url = token.split('.')[1]; const base64 = base64Url.replace(/-/g,'+').replace(/_/g,'/'); return JSON.parse(decodeURIComponent(atob(base64).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); } catch(e){ return {}; } }
-function signOut() { localStorage.clear(); if(google?.accounts?.id) google.accounts.id.disableAutoSelect(); location.reload(); }
-window.saveOrder = saveOrder; window.updateStatus = updateStatus; window.deleteOrder = deleteOrder; window.signOut = signOut; window.handleCredentialResponse = handleCredentialResponse; window.loadOrders = loadOrders; window.applyFilters = applyFilters; window.manualRefresh = manualRefresh;
 
+// Глобальные функции для вызова из onclick
+window.saveOrder = saveOrder;
+window.updateStatus = updateStatus;
+window.deleteOrder = deleteOrder;
+window.loadOrders = loadOrders;
+window.applyFilters = applyFilters;
+window.manualRefresh = manualRefresh;
+
+// Инициализация при загрузке
 window.addEventListener('load', async () => {
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
     const saveInline = document.getElementById('saveOrderInlineBtn');
     if(saveInline) saveInline.addEventListener('click', saveOrder);
     
-    const logged = localStorage.getItem('userLoggedIn') === 'true';
-    const savedEmail = localStorage.getItem('userEmail');
-    if (logged && savedEmail) {
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('user-info').style.display = 'flex';
-        document.getElementById('main-content').style.display = 'block';
-        document.getElementById('user-pic').src = localStorage.getItem('userPic') || '';
-        document.getElementById('user-name').innerText = localStorage.getItem('userName') || 'User';
-        document.getElementById('user-email').innerText = savedEmail;
-        currentUser = { email: savedEmail, name: localStorage.getItem('userName'), picture: localStorage.getItem('userPic') };
-        try {
-            await loadSheetsAPI(); await gapi.client.init({ apiKey: AUTH_API_KEY, discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'] });
-            const resp = await gapi.client.sheets.spreadsheets.values.get({ spreadsheetId: AUTH_SPREADSHEET_ID, range: `${AUTH_SHEET_NAME}!A:C` });
-            let hasAccess = false; for(let row of resp.result.values||[]) if(row[0] && row[0].toLowerCase().trim()===savedEmail.toLowerCase().trim()){ hasAccess=true; break; }
-            if(hasAccess){ document.getElementById('ordersList').innerHTML='<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>'; await loadOrders(true); } else { showToast('Нет доступа к таблице',true); document.getElementById('ordersList').innerHTML='<div class="empty-state"><i class="fas fa-ban"></i> Нет доступа</div>'; }
-        } catch(err){ document.getElementById('ordersList').innerHTML=`<div class="empty-state">Ошибка: ${escapeHtml(err.message)}<br><button onclick="manualRefresh()" style="margin-top:15px;">Обновить</button></div>`; }
-    } else {
-        document.getElementById('login-section').style.display = 'flex';
-        if(google?.accounts?.id){ google.accounts.id.initialize({ client_id:'328749588235-bgfeukqogpoq2ha65j7j0vk840hctiaq.apps.googleusercontent.com', callback:handleCredentialResponse }); google.accounts.id.renderButton(document.querySelector('.g_id_signin'),{ type:'standard', shape:'pill', theme:'outline', text:'signin_with', size:'large' }); }
-    }
+    // Загружаем заказы сразу
+    await loadOrders(true);
 });
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
     document.getElementById('clubFilter')?.addEventListener('change', applyFilters);
