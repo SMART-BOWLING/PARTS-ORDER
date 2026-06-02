@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Фото через камеру/галерею</title>
+<title>PARTS ORDER — Фото сразу через галерею</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -396,29 +396,6 @@ body {
     font-weight: bold;
     cursor: pointer;
 }
-.photo-buttons {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 20px;
-    background: rgba(0,0,0,0.7);
-    padding: 15px 25px;
-    border-radius: 50px;
-}
-.photo-btn-modal {
-    background: #4a6fa5;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
 .hidden-file-input {
     display: none;
 }
@@ -427,8 +404,6 @@ body {
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
     .form-card { padding: 16px; }
-    .photo-buttons { padding: 10px 15px; gap: 10px; }
-    .photo-btn-modal { padding: 8px 16px; font-size: 14px; }
 }
 </style>
 </head>
@@ -466,25 +441,13 @@ body {
     </div>
 </div>
 
-<!-- Модальное окно для просмотра фото (без кнопок выбора, только просмотр) -->
+<!-- Только модальное окно для просмотра фото -->
 <div id="viewPhotoModal" class="modal">
     <span class="close-modal">&times;</span>
     <img class="modal-content" id="viewModalImage">
 </div>
 
-<!-- 
-    Модальное окно для ДОБАВЛЕНИЯ фото: именно оно появляется сразу при нажатии "Добавить фото"
-    с двумя кнопками: "Камера" и "Галерея".
--->
-<div id="addPhotoModal" class="modal">
-    <span class="close-modal">&times;</span>
-    <div class="photo-buttons">
-        <button id="cameraBtn" class="photo-btn-modal"><i class="fas fa-camera"></i> Камера</button>
-        <button id="galleryBtn" class="photo-btn-modal"><i class="fas fa-image"></i> Галерея</button>
-    </div>
-</div>
-
-<!-- Скрытый input для выбора файла (под капотом) -->
+<!-- Скрытый input для выбора файла (сразу открывает системное меню "Камера/Галерея/Файлы") -->
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
@@ -727,7 +690,7 @@ async function deleteOrder(row, cardEl) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
-// Просмотр фото (без меню выбора, просто открывает картинку)
+// Просмотр фото
 async function viewPhoto(partNumber) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
@@ -748,22 +711,27 @@ async function viewPhoto(partNumber) {
     }
 }
 
-// ★★★ ГЛАВНОЕ: при нажатии на кнопку "Добавить фото" сразу открывается модалка с выбором "Камера / Галерея"
-function addPhoto(partNumber, cardElement, buttonElement) {
+// ★★★ ПРЯМОЙ ВЫЗОВ ГАЛЕРЕИ (системное меню выбора файлов) ★★★
+// При нажатии на кнопку "Добавить фото" сразу открывается нативное меню выбора источника (камера/галерея/файлы)
+function addPhotoDirect(partNumber, cardElement, buttonElement) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
         return;
     }
-    // Сохраняем контекст для загрузки после выбора
+    // Сохраняем контекст для загрузки после выбора файла
     currentPartNumberForPhoto = partNumber;
     currentCardElement = cardElement;
     currentPhotoButton = buttonElement;
-    // Открываем модальное окно с кнопками КАМЕРА / ГАЛЕРЕЯ — это именно то меню, которое нужно
-    const modal = document.getElementById('addPhotoModal');
-    modal.style.display = 'block';
+    
+    // Сразу открываем системный диалог выбора файла (на телефонах это "Камера / Галерея")
+    // Убираем атрибут capture, чтобы показать оба варианта (камера и галерея)
+    const fileInput = document.getElementById('fileInput');
+    fileInput.removeAttribute('capture');
+    fileInput.value = ''; // Сбрасываем, чтобы onChange сработал даже при выборе того же файла
+    fileInput.click();
 }
 
-// Загрузка фото в Cloudinary + сохранение ссылки в таблице
+// Загрузка фото в Cloudinary + сохранение ссылки
 async function uploadPhoto(file) {
     if (!currentPartNumberForPhoto) return;
     showToast('Загрузка фото...');
@@ -777,13 +745,10 @@ async function uploadPhoto(file) {
             const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url });
             if (res?.success) {
                 showToast('✅ Фото сохранено');
-                // Закрываем модалку выбора (камера/галерея)
-                document.getElementById('addPhotoModal').style.display = 'none';
-                // Обновляем интерфейс: меняем кнопку на "Фото есть" с действием просмотра
+                // Обновляем кнопку: меняем на "Фото есть" с действием просмотра
                 if (currentPhotoButton) {
                     currentPhotoButton.classList.add('has-photo');
                     currentPhotoButton.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
-                    // Заменяем обработчик: теперь по нажатию будет просмотр, а не добавление
                     const newBtn = currentPhotoButton.cloneNode(true);
                     currentPhotoButton.parentNode.replaceChild(newBtn, currentPhotoButton);
                     newBtn.onclick = () => viewPhoto(currentPartNumberForPhoto);
@@ -800,23 +765,6 @@ function handleFileSelect(e) {
     document.getElementById('fileInput').value = '';
 }
 
-// Открыть камеру (мобильный браузер)
-function openCamera() {
-    const input = document.getElementById('fileInput');
-    input.setAttribute('capture', 'environment');
-    input.click();
-    document.getElementById('addPhotoModal').style.display = 'none';
-}
-
-// Открыть галерею
-function openGallery() {
-    const input = document.getElementById('fileInput');
-    input.removeAttribute('capture');
-    input.click();
-    document.getElementById('addPhotoModal').style.display = 'none';
-}
-
-// Фильтрация и отрисовка списка
 function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
@@ -875,7 +823,7 @@ async function renderOrders(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        // Асинхронная проверка наличия фото
+        // Проверяем наличие фото
         let hasPhoto = false;
         try {
             const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
@@ -890,8 +838,8 @@ async function renderOrders(orders) {
         } else {
             photoBtn.className = 'photo-card-btn';
             photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            // Прямо здесь вешаем вызов меню (камера/галерея) одним нажатием
-            photoBtn.onclick = () => addPhoto(order.partNumber, card, photoBtn);
+            // ★★★ ЗДЕСЬ: при нажатии сразу открывается системное меню (камера/галерея) ★★★
+            photoBtn.onclick = () => addPhotoDirect(order.partNumber, card, photoBtn);
         }
         
         const delBtn = document.createElement('button');
@@ -915,28 +863,21 @@ window.addEventListener('load', async () => {
     document.getElementById('clubFilter').addEventListener('change', applyFilters);
     document.getElementById('searchInput').addEventListener('keyup', applyFilters);
     
-    // Модальные окна
+    // Модальное окно для просмотра фото
     const viewModal = document.getElementById('viewPhotoModal');
-    const addModal = document.getElementById('addPhotoModal');
     const closeBtns = document.querySelectorAll('.close-modal');
-    const cameraBtn = document.getElementById('cameraBtn');
-    const galleryBtn = document.getElementById('galleryBtn');
     const fileInput = document.getElementById('fileInput');
     
     closeBtns.forEach(btn => {
         btn.onclick = () => {
             viewModal.style.display = 'none';
-            addModal.style.display = 'none';
         };
     });
     
-    cameraBtn.onclick = openCamera;
-    galleryBtn.onclick = openGallery;
     fileInput.onchange = handleFileSelect;
     
     window.onclick = (e) => {
         if (e.target == viewModal) viewModal.style.display = 'none';
-        if (e.target == addModal) addModal.style.display = 'none';
     };
     
     await loadOrders(true);
