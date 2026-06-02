@@ -12,6 +12,12 @@
     --accent: #dc143c;
     --light: #1f2937;
     --white: #ffffff;
+    --add-btn-color: #f0f2f5;      /* Цвет кнопки "Добавить" */
+    --add-btn-border: #8a9bb0;      /* Рамка кнопки "Добавить" */
+    --order-btn-color: var(--dark); /* Цвет кнопки "Заказать" (теперь dark) */
+    --photo-open-color: #f0f2f5;   /* Цвет кнопки "Открыть фото" - как у "Добавить" */
+    --photo-add-color: var(--dark); /* Цвет кнопки "Добавить фото" - как у "Заказать" */
+    --check-btn-color: var(--dark); /* Цвет кнопки "Проверка..." - как у "Заказать" */
 }
 
 * {
@@ -145,8 +151,8 @@ body {
     margin: 8px 0 6px 0;
 }
 .add-position-btn {
-    background: #f0f2f5;
-    border: 1px dashed #8a9bb0;
+    background: var(--add-btn-color);
+    border: 1px dashed var(--add-btn-border);
     color: var(--dark);
     padding: 12px 16px;
     border-radius: 6px;
@@ -160,7 +166,7 @@ body {
     flex: 1;
 }
 .save-order-btn-inline {
-    background: var(--dark);
+    background: var(--order-btn-color);
     color: white;
     font-weight: 600;
     border: none;
@@ -256,8 +262,6 @@ body {
     border-top: 1px solid #edf2f7;
 }
 .photo-card-btn {
-    background: #4a6fa5;
-    color: white;
     border: none;
     padding: 10px 12px;
     border-radius: 6px;
@@ -271,13 +275,25 @@ body {
     justify-content: center;
     text-decoration: none;
 }
+/* Кнопка "Открыть фото" - цвет как у кнопки "Добавить" */
 .photo-card-btn.has-photo {
-    background: #28a745;
+    background: var(--photo-open-color);
+    border: 1px dashed var(--add-btn-border);
+    color: var(--dark);
     cursor: pointer;
 }
+/* Обычная кнопка "Добавить фото" - цвет как у кнопки "Заказать" */
+.photo-card-btn:not(.has-photo) {
+    background: var(--photo-add-color);
+    color: white;
+}
+/* Кнопка в состоянии загрузки/проверки - цвет как у кнопки "Заказать" */
+.photo-card-btn[disabled],
 .photo-card-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    background: var(--check-btn-color);
+    color: white;
+    opacity: 0.7;
+    cursor: wait;
 }
 .photo-link {
     text-decoration: none;
@@ -685,10 +701,10 @@ function renderOrdersFast(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        // Временно показываем спиннер на кнопке
+        // Временно показываем спиннер на кнопке (цвет как у "Заказать" - темный)
         const loadingButton = document.createElement('button');
         loadingButton.className = 'photo-card-btn';
-        loadingButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Загрузка...';
+        loadingButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
         loadingButton.disabled = true;
         loadingButton.style.opacity = '0.7';
         actionDiv.appendChild(loadingButton);
@@ -722,7 +738,7 @@ async function loadAllPhotosInBackground() {
         let isLoaded = false;
         
         if (photoUrl === undefined) {
-            // Меняем текст на "Проверка..."
+            // Меняем текст на "Проверка..." (цвет как у "Заказать")
             oldButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
             try {
                 const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber });
@@ -751,7 +767,6 @@ async function loadAllPhotosInBackground() {
             link.className = 'photo-card-btn has-photo';
             link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
             link.style.textDecoration = 'none';
-            link.style.color = 'white';
             link.style.display = 'flex';
             link.style.alignItems = 'center';
             link.style.gap = '8px';
@@ -890,7 +905,6 @@ async function uploadPhoto(file) {
                     link.className = 'photo-card-btn has-photo';
                     link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
                     link.style.textDecoration = 'none';
-                    link.style.color = 'white';
                     link.style.display = 'flex';
                     link.style.alignItems = 'center';
                     link.style.gap = '8px';
