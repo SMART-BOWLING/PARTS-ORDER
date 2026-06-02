@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Фото как прямая ссылка</title>
+<title>PARTS ORDER — Быстрые карточки + подгрузка фото</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -275,8 +275,9 @@ body {
     background: #28a745;
     cursor: pointer;
 }
-.photo-card-btn.has-photo:active {
-    transform: scale(0.98);
+.photo-card-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 .photo-link {
     text-decoration: none;
@@ -594,10 +595,12 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         
-        // Очищаем кэш URL фото
+        // Очищаем кэш URL фото, чтобы подгрузить актуальные
         photoUrlCache = {};
         
-        applyFilters();
+        // Мгновенно отображаем карточки (без фото)
+        applyFiltersAndRenderFast();
+        
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
             setTimeout(() => {
@@ -605,6 +608,10 @@ async function loadOrders(showLoading = true, highlightRow = null) {
                 if (card) { card.classList.add('new-order'); setTimeout(() => card.classList.remove('new-order'), 1000); card.scrollIntoView({ behavior:'smooth', block:'center' }); }
             }, 100);
         }
+        
+        // Фоновый запуск подгрузки фото для всех отображаемых карточек
+        setTimeout(() => loadAllPhotosInBackground(), 100);
+        
     } catch(err) {
         console.error(err);
         if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> ${err.message}<br><br><button onclick="manualRefresh()" style="background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;">↻ Повторить</button></div>`;
@@ -614,6 +621,160 @@ async function loadOrders(showLoading = true, highlightRow = null) {
 }
 
 async function manualRefresh() { await loadOrders(true); }
+
+// Мгновенная отрисовка карточек без фото
+function applyFiltersAndRenderFast() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const clubFilter = document.getElementById('clubFilter').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    let filtered = [...allOrders];
+    if (statusFilter === 'active') filtered = filtered.filter(o => o.status !== 'Доставлено');
+    else if (statusFilter === 'delivered') filtered = filtered.filter(o => o.status === 'Доставлено');
+    if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
+    if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
+    filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
+    renderOrdersFast(filtered);
+}
+
+// Быстрая отрисовка карточек (кнопки фото будут в состоянии загрузки)
+function renderOrdersFast(orders) {
+    const container = document.getElementById('ordersList');
+    if (!container) return;
+    if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов</div>'; return; }
+    
+    container.innerHTML = '';
+    
+    for (const order of orders) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-row', order.row);
+        card.setAttribute('data-partnumber', order.partNumber);
+        
+        let dateStr = '—';
+        if (order.timestamp) { const d = parseTimestamp(order.timestamp); if (d && !isNaN(d)) dateStr = formatDateTime(d); }
+        
+        const table = document.createElement('table');
+        table.className = 'order-table';
+        const fields = [
+            { label:'Номер детали', value: order.partNumber || '—' },
+            { label:'Количество', value: `${order.quantity} шт.` },
+            { label:'Боулинг-клуб', value: order.club || '—' },
+            { label:'Дата и время', value: dateStr }
+        ];
+        fields.forEach(f => {
+            const tr = document.createElement('tr');
+            const td1 = document.createElement('td'); td1.textContent = f.label;
+            const td2 = document.createElement('td'); td2.textContent = f.value;
+            tr.appendChild(td1); tr.appendChild(td2);
+            table.appendChild(tr);
+        });
+        
+        const statusTr = document.createElement('tr');
+        const statusTdL = document.createElement('td'); statusTdL.textContent = 'Статус';
+        const statusTdV = document.createElement('td');
+        const curStatus = order.status || 'Активно';
+        const select = document.createElement('select');
+        select.className = `status-select ${curStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
+        select.innerHTML = `<option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option><option value="Доставлено" ${curStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>`;
+        select.onchange = (e) => updateStatus(order.row, select.value, select);
+        statusTdV.appendChild(select);
+        statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV);
+        table.appendChild(statusTr);
+        card.appendChild(table);
+        
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-bar';
+        
+        // Временно показываем спиннер на кнопке
+        const loadingButton = document.createElement('button');
+        loadingButton.className = 'photo-card-btn';
+        loadingButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Загрузка...';
+        loadingButton.disabled = true;
+        loadingButton.style.opacity = '0.7';
+        actionDiv.appendChild(loadingButton);
+        
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
+        delBtn.className = 'delete-order-btn';
+        delBtn.onclick = () => deleteOrder(order.row, card);
+        
+        actionDiv.appendChild(delBtn);
+        card.appendChild(actionDiv);
+        container.appendChild(card);
+    }
+}
+
+// Фоновая подгрузка фото (постепенно)
+async function loadAllPhotosInBackground() {
+    const cards = document.querySelectorAll('#ordersList .card');
+    for (const card of cards) {
+        const partNumber = card.getAttribute('data-partnumber');
+        if (!partNumber) continue;
+        
+        const actionBar = card.querySelector('.action-bar');
+        if (!actionBar) continue;
+        
+        const oldButton = actionBar.querySelector('.photo-card-btn');
+        if (!oldButton) continue;
+        
+        // Проверяем кэш
+        let photoUrl = photoUrlCache[partNumber];
+        let isLoaded = false;
+        
+        if (photoUrl === undefined) {
+            // Меняем текст на "Проверка..."
+            oldButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
+            try {
+                const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber });
+                if (res?.success && res.hasPhoto && res.photoUrl) {
+                    photoUrl = res.photoUrl;
+                    photoUrlCache[partNumber] = photoUrl;
+                    isLoaded = true;
+                } else {
+                    photoUrlCache[partNumber] = null;
+                }
+            } catch(e) {
+                console.warn(`Ошибка проверки фото для ${partNumber}`);
+                photoUrlCache[partNumber] = null;
+            }
+        } else {
+            photoUrl = photoUrlCache[partNumber];
+            isLoaded = (photoUrl !== null);
+        }
+        
+        // Создаём финальный элемент
+        let finalElement;
+        if (photoUrl) {
+            const link = document.createElement('a');
+            link.href = photoUrl;
+            link.target = '_blank';
+            link.className = 'photo-card-btn has-photo';
+            link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
+            link.style.textDecoration = 'none';
+            link.style.color = 'white';
+            link.style.display = 'flex';
+            link.style.alignItems = 'center';
+            link.style.gap = '8px';
+            link.style.width = '100%';
+            link.style.justifyContent = 'center';
+            finalElement = link;
+        } else {
+            const button = document.createElement('button');
+            button.className = 'photo-card-btn';
+            button.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+            button.onclick = () => addPhotoDirect(partNumber, card, button);
+            finalElement = button;
+        }
+        
+        // Заменяем кнопку
+        if (oldButton && oldButton.parentNode === actionBar) {
+            actionBar.replaceChild(finalElement, oldButton);
+        }
+        
+        // Небольшая задержка, чтобы не перегружать сеть
+        await new Promise(r => setTimeout(r, 150));
+    }
+}
 
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
@@ -655,7 +816,9 @@ async function updateStatus(row, newStatus, selectEl) {
         }
         const idx = allOrders.findIndex(o => o.row == row);
         if (idx !== -1) allOrders[idx].status = newStatus;
-        applyFilters();
+        applyFiltersAndRenderFast();
+        // После быстрой перерисовки снова запускаем подгрузку фото для новых карточек
+        setTimeout(() => loadAllPhotosInBackground(), 100);
         showToast(`Статус изменён на "${newStatus}"`);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectEl.value = original; }
     finally { selectEl.disabled = false; }
@@ -672,12 +835,10 @@ async function deleteOrder(row, cardEl) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
-// Получение URL фото для прямой ссылки
 async function getPhotoUrl(partNumber) {
     if (photoUrlCache[partNumber] !== undefined) {
         return photoUrlCache[partNumber];
     }
-    
     try {
         const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber });
         if (res?.success && res.hasPhoto && res.photoUrl) {
@@ -693,7 +854,6 @@ async function getPhotoUrl(partNumber) {
     }
 }
 
-// Прямой вызов галереи (системное меню выбора файлов)
 function addPhotoDirect(partNumber, cardElement, buttonElement) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
@@ -709,7 +869,6 @@ function addPhotoDirect(partNumber, cardElement, buttonElement) {
     fileInput.click();
 }
 
-// Загрузка фото в Cloudinary + сохранение ссылки
 async function uploadPhoto(file) {
     if (!currentPartNumberForPhoto) return;
     showToast('Загрузка фото...');
@@ -723,15 +882,13 @@ async function uploadPhoto(file) {
             const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url });
             if (res?.success) {
                 showToast('✅ Фото сохранено');
-                // Обновляем кэш
                 photoUrlCache[currentPartNumberForPhoto] = data.secure_url;
                 if (currentPhotoButton) {
-                    // Превращаем кнопку в ссылку
                     const link = document.createElement('a');
                     link.href = data.secure_url;
                     link.target = '_blank';
                     link.className = 'photo-card-btn has-photo';
-                    link.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
+                    link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
                     link.style.textDecoration = 'none';
                     link.style.color = 'white';
                     link.style.display = 'flex';
@@ -754,102 +911,8 @@ function handleFileSelect(e) {
 }
 
 function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const clubFilter = document.getElementById('clubFilter').value;
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    let filtered = [...allOrders];
-    if (statusFilter === 'active') filtered = filtered.filter(o => o.status !== 'Доставлено');
-    else if (statusFilter === 'delivered') filtered = filtered.filter(o => o.status === 'Доставлено');
-    if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
-    if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
-    filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
-    renderOrders(filtered);
-}
-
-async function renderOrders(orders) {
-    const container = document.getElementById('ordersList');
-    if (!container) return;
-    if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов</div>'; return; }
-    
-    container.innerHTML = '';
-    
-    for (const order of orders) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.setAttribute('data-row', order.row);
-        
-        let dateStr = '—';
-        if (order.timestamp) { const d = parseTimestamp(order.timestamp); if (d && !isNaN(d)) dateStr = formatDateTime(d); }
-        
-        const table = document.createElement('table');
-        table.className = 'order-table';
-        const fields = [
-            { label:'Номер детали', value: order.partNumber || '—' },
-            { label:'Количество', value: `${order.quantity} шт.` },
-            { label:'Боулинг-клуб', value: order.club || '—' },
-            { label:'Дата и время', value: dateStr }
-        ];
-        fields.forEach(f => {
-            const tr = document.createElement('tr');
-            const td1 = document.createElement('td'); td1.textContent = f.label;
-            const td2 = document.createElement('td'); td2.textContent = f.value;
-            tr.appendChild(td1); tr.appendChild(td2);
-            table.appendChild(tr);
-        });
-        
-        const statusTr = document.createElement('tr');
-        const statusTdL = document.createElement('td'); statusTdL.textContent = 'Статус';
-        const statusTdV = document.createElement('td');
-        const curStatus = order.status || 'Активно';
-        const select = document.createElement('select');
-        select.className = `status-select ${curStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
-        select.innerHTML = `<option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option><option value="Доставлено" ${curStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>`;
-        select.onchange = (e) => updateStatus(order.row, select.value, select);
-        statusTdV.appendChild(select);
-        statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV);
-        table.appendChild(statusTr);
-        card.appendChild(table);
-        
-        const actionDiv = document.createElement('div');
-        actionDiv.className = 'action-bar';
-        
-        // Получаем URL фото
-        const photoUrl = await getPhotoUrl(order.partNumber);
-        
-        let photoElement;
-        if (photoUrl) {
-            // Это ПРЯМАЯ ССЫЛКА! При клике происходит переход по URL
-            const link = document.createElement('a');
-            link.href = photoUrl;
-            link.target = '_blank';
-            link.className = 'photo-card-btn has-photo';
-            link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
-            link.style.textDecoration = 'none';
-            link.style.color = 'white';
-            link.style.display = 'flex';
-            link.style.alignItems = 'center';
-            link.style.gap = '8px';
-            link.style.width = '100%';
-            link.style.justifyContent = 'center';
-            photoElement = link;
-        } else {
-            const button = document.createElement('button');
-            button.className = 'photo-card-btn';
-            button.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            button.onclick = () => addPhotoDirect(order.partNumber, card, button);
-            photoElement = button;
-        }
-        
-        const delBtn = document.createElement('button');
-        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
-        delBtn.className = 'delete-order-btn';
-        delBtn.onclick = () => deleteOrder(order.row, card);
-        
-        actionDiv.appendChild(photoElement);
-        actionDiv.appendChild(delBtn);
-        card.appendChild(actionDiv);
-        container.appendChild(card);
-    }
+    applyFiltersAndRenderFast();
+    setTimeout(() => loadAllPhotosInBackground(), 100);
 }
 
 // Инициализация
