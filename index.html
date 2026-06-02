@@ -426,8 +426,8 @@ body {
 </div>
 
 <script>
-// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS (без авторизации) -----
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRkgROTnnI8EL5n1tT3_nqWpHG-mCqgYmtWsKJy_qwPupHh6MV2m4gtxUWKHJ-FKkHNw/exec';
+// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS -----
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIE1Uk1M3rQLkvKnp7gdApJpo2wMhLUNGrEpZpBpE-RWbO8xLqGaXXz-3Okkka4IWFUA/exec';
 
 let allOrders = [];
 let isLoading = false;
@@ -674,16 +674,36 @@ async function saveOrder() {
 async function updateStatus(row, newStatus, selectElement) {
     if (!selectElement) return;
     const originalValue = selectElement.value;
-    selectElement.disabled = true; selectElement.style.opacity = '0.6';
+    selectElement.disabled = true;
+    selectElement.style.opacity = '0.6';
     try {
         const result = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (result && result.error) throw new Error(result.error);
+        
+        // Показываем информацию об обновлении SKYMALL (если было)
+        if (result.skymallUpdate && result.skymallUpdate.success) {
+            const details = result.skymallUpdate.details;
+            if (details.existed) {
+                showToast(`📦 SKYMALL: ${details.partNumber} - остаток обновлён: ${details.oldQty} → ${details.newQty} шт.`);
+            } else {
+                showToast(`📦 SKYMALL: новая деталь ${details.partNumber} добавлена, остаток: ${details.newQty} шт.`);
+            }
+        } else if (result.skymallUpdate && !result.skymallUpdate.success) {
+            showToast(`⚠️ Ошибка SKYMALL: ${result.skymallUpdate.message}`, true);
+        }
+        
         const idx = allOrders.findIndex(o => o.row == row);
         if (idx !== -1) allOrders[idx].status = newStatus;
         applyFilters();
         showToast(`Статус изменён на "${newStatus}"`);
-    } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectElement.value = originalValue; }
-    finally { selectElement.disabled = false; selectElement.style.opacity = '1'; }
+    } catch(err) { 
+        showToast(`Ошибка: ${err.message}`, true); 
+        selectElement.value = originalValue; 
+    }
+    finally { 
+        selectElement.disabled = false; 
+        selectElement.style.opacity = '1'; 
+    }
 }
 
 async function deleteOrder(row, cardElement) {
@@ -699,10 +719,7 @@ async function deleteOrder(row, cardElement) {
         const result = await callScriptAsync('deleteOrder', { row });
         if (result && result.error) throw new Error(result.error);
         
-        // ПРИНУДИТЕЛЬНО ПЕРЕЗАГРУЖАЕМ ВЕСЬ СПИСОК
-        // Это обновит все номера строк на актуальные
         await loadOrders(true);
-        
         showToast('Заказ удалён');
         
     } catch(err) { 
@@ -760,7 +777,7 @@ function renderOrders(orders) {
     });
 }
 
-// Глобальные функции для вызова из onclick
+// Глобальные функции
 window.saveOrder = saveOrder;
 window.updateStatus = updateStatus;
 window.deleteOrder = deleteOrder;
@@ -768,14 +785,13 @@ window.loadOrders = loadOrders;
 window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
 
-// Инициализация при загрузке
+// Инициализация
 window.addEventListener('load', async () => {
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
     const saveInline = document.getElementById('saveOrderInlineBtn');
     if(saveInline) saveInline.addEventListener('click', saveOrder);
     
-    // Загружаем заказы сразу
     await loadOrders(true);
 });
 
