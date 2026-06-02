@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -428,7 +427,7 @@ body {
 
 <script>
 // ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS (без авторизации) -----
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwa5IaKN__SXP6WDen5VXxfsHILUpz6Bk2IyuMOlBVLa6SKUR7eEjw2Sjj7Nm6_M4eTgg/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRkgROTnnI8EL5n1tT3_nqWpHG-mCqgYmtWsKJy_qwPupHh6MV2m4gtxUWKHJ-FKkHNw/exec';
 
 let allOrders = [];
 let isLoading = false;
@@ -689,15 +688,30 @@ async function updateStatus(row, newStatus, selectElement) {
 
 async function deleteOrder(row, cardElement) {
     if (!confirm('Удалить заказ навсегда?')) return;
+    
     const card = cardElement.closest('.card');
-    if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
+    if (card) { 
+        card.style.opacity = '0.5'; 
+        card.style.pointerEvents = 'none'; 
+    }
+    
     try {
-        await callScriptAsync('deleteOrder', { row });
-        const idx = allOrders.findIndex(o => o.row == row);
-        if (idx !== -1) allOrders.splice(idx,1);
-        applyFilters();
+        const result = await callScriptAsync('deleteOrder', { row });
+        if (result && result.error) throw new Error(result.error);
+        
+        // ПРИНУДИТЕЛЬНО ПЕРЕЗАГРУЖАЕМ ВЕСЬ СПИСОК
+        // Это обновит все номера строк на актуальные
+        await loadOrders(true);
+        
         showToast('Заказ удалён');
-    } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
+        
+    } catch(err) { 
+        showToast(`Ошибка: ${err.message}`, true); 
+        if(card){ 
+            card.style.opacity='1'; 
+            card.style.pointerEvents='auto'; 
+        } 
+    }
 }
 
 function applyFilters() {
