@@ -272,9 +272,10 @@ body {
 }
 .photo-card-btn.has-photo {
     background: #28a745;
+    cursor: pointer;
 }
-.photo-card-btn i {
-    font-size: 14px;
+.photo-card-btn.has-photo:active {
+    transform: scale(0.98);
 }
 .delete-order-btn {
     background: white;
@@ -465,9 +466,15 @@ body {
     </div>
 </div>
 
-<div id="photoModal" class="modal">
+<!-- Модальное окно для просмотра фото (без кнопок добавления) -->
+<div id="viewPhotoModal" class="modal">
     <span class="close-modal">&times;</span>
-    <img class="modal-content" id="modalImage">
+    <img class="modal-content" id="viewModalImage">
+</div>
+
+<!-- Модальное окно для добавления фото (с кнопками камера/галерея) -->
+<div id="addPhotoModal" class="modal">
+    <span class="close-modal">&times;</span>
     <div class="photo-buttons">
         <button id="cameraBtn" class="photo-btn-modal"><i class="fas fa-camera"></i> Камера</button>
         <button id="galleryBtn" class="photo-btn-modal"><i class="fas fa-image"></i> Галерея</button>
@@ -485,6 +492,7 @@ let allOrders = [];
 let isLoading = false;
 let currentPartNumberForPhoto = null;
 let currentCardElement = null;
+let currentPhotoButton = null;
 
 let itemCounter = 0;
 let currentItems = [];
@@ -715,24 +723,38 @@ async function deleteOrder(row, cardEl) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
-async function openCardPhoto(partNumber, cardElement) {
+// Функция для просмотра фото (если есть)
+async function viewPhoto(partNumber) {
+    if (!partNumber || partNumber.trim() === '') {
+        showToast('Номер детали не указан', true);
+        return;
+    }
+    try {
+        const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
+        if (res?.success && res.hasPhoto && res.photoUrl) {
+            const modal = document.getElementById('viewPhotoModal');
+            const modalImg = document.getElementById('viewModalImage');
+            modalImg.src = res.photoUrl;
+            modal.style.display = 'block';
+        } else {
+            showToast('Фото отсутствует', true);
+        }
+    } catch(err) {
+        showToast('Ошибка загрузки фото', true);
+    }
+}
+
+// Функция для добавления фото (открывает меню камера/галерея)
+function addPhoto(partNumber, cardElement, buttonElement) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
         return;
     }
     currentPartNumberForPhoto = partNumber;
     currentCardElement = cardElement;
-    const modal = document.getElementById('photoModal');
-    const modalImg = document.getElementById('modalImage');
+    currentPhotoButton = buttonElement;
+    const modal = document.getElementById('addPhotoModal');
     modal.style.display = 'block';
-    modalImg.style.display = 'none';
-    try {
-        const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
-        if (res?.success && res.hasPhoto && res.photoUrl) {
-            modalImg.src = res.photoUrl;
-            modalImg.style.display = 'block';
-        }
-    } catch(err) { console.log(err); }
 }
 
 async function uploadPhoto(file) {
@@ -748,13 +770,16 @@ async function uploadPhoto(file) {
             const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url });
             if (res?.success) {
                 showToast('✅ Фото сохранено');
-                const modalImg = document.getElementById('modalImage');
-                modalImg.src = data.secure_url;
-                modalImg.style.display = 'block';
+                // Закрываем модальное окно добавления
+                document.getElementById('addPhotoModal').style.display = 'none';
                 // Обновляем кнопку на карточке
-                if (currentCardElement) {
-                    const btn = currentCardElement.querySelector('.photo-card-btn');
-                    if (btn) btn.classList.add('has-photo');
+                if (currentPhotoButton) {
+                    currentPhotoButton.classList.add('has-photo');
+                    currentPhotoButton.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
+                    // Меняем действие кнопки на просмотр
+                    const newBtn = currentPhotoButton.cloneNode(true);
+                    currentPhotoButton.parentNode.replaceChild(newBtn, currentPhotoButton);
+                    newBtn.onclick = () => viewPhoto(currentPartNumberForPhoto);
                 }
             } else showToast('Ошибка сохранения', true);
         } else showToast('Ошибка Cloudinary', true);
@@ -770,12 +795,14 @@ function openCamera() {
     const input = document.getElementById('fileInput');
     input.setAttribute('capture', 'environment');
     input.click();
+    document.getElementById('addPhotoModal').style.display = 'none';
 }
 
 function openGallery() {
     const input = document.getElementById('fileInput');
     input.removeAttribute('capture');
     input.click();
+    document.getElementById('addPhotoModal').style.display = 'none';
 }
 
 function applyFilters() {
@@ -836,21 +863,27 @@ async function renderOrders(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        // Кнопка фото
-        const photoBtn = document.createElement('button');
-        photoBtn.className = 'photo-card-btn';
-        photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Фото детали';
         // Проверяем есть ли фото
+        const photoBtn = document.createElement('button');
+        let hasPhoto = false;
         try {
             const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
             if (photoRes?.success && photoRes.hasPhoto) {
-                photoBtn.classList.add('has-photo');
-                photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
-            } else {
-                photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+                hasPhoto = true;
             }
         } catch(e) {}
-        photoBtn.onclick = () => openCardPhoto(order.partNumber, card);
+        
+        if (hasPhoto) {
+            // Фото есть - кнопка для просмотра
+            photoBtn.className = 'photo-card-btn has-photo';
+            photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
+            photoBtn.onclick = () => viewPhoto(order.partNumber);
+        } else {
+            // Фото нет - кнопка для добавления
+            photoBtn.className = 'photo-card-btn';
+            photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+            photoBtn.onclick = () => addPhoto(order.partNumber, card, photoBtn);
+        }
         
         const delBtn = document.createElement('button');
         delBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
@@ -876,17 +909,29 @@ window.addEventListener('load', async () => {
     document.getElementById('clubFilter').addEventListener('change', applyFilters);
     document.getElementById('searchInput').addEventListener('keyup', applyFilters);
     
-    const modal = document.getElementById('photoModal');
-    const closeBtn = document.querySelector('.close-modal');
+    // Настройка модальных окон
+    const viewModal = document.getElementById('viewPhotoModal');
+    const addModal = document.getElementById('addPhotoModal');
+    const closeBtns = document.querySelectorAll('.close-modal');
     const cameraBtn = document.getElementById('cameraBtn');
     const galleryBtn = document.getElementById('galleryBtn');
     const fileInput = document.getElementById('fileInput');
     
-    closeBtn.onclick = () => modal.style.display = 'none';
+    closeBtns.forEach(btn => {
+        btn.onclick = () => {
+            viewModal.style.display = 'none';
+            addModal.style.display = 'none';
+        };
+    });
+    
     cameraBtn.onclick = openCamera;
     galleryBtn.onclick = openGallery;
     fileInput.onchange = handleFileSelect;
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; }
+    
+    window.onclick = (e) => {
+        if (e.target == viewModal) viewModal.style.display = 'none';
+        if (e.target == addModal) addModal.style.display = 'none';
+    };
     
     await loadOrders(true);
 });
