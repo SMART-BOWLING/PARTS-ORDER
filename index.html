@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Фото в новой вкладке</title>
+<title>PARTS ORDER — Прямое открытие фото</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -370,11 +370,45 @@ body {
 .hidden-file-input {
     display: none;
 }
+/* Стиль для прямого открытия изображения — без модального окна, просто ссылка */
+.image-link-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    cursor: pointer;
+}
+.image-link-overlay img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    border-radius: 8px;
+}
+.image-link-overlay .close-image-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: white;
+    background: rgba(0,0,0,0.6);
+    padding: 8px;
+    font-size: 14px;
+    font-family: monospace;
+}
 @media (max-width: 600px) {
     body { padding: 15px; }
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
     .form-card { padding: 16px; }
+    .image-link-overlay img { max-width: 95vw; max-height: 85vh; }
 }
 </style>
 </head>
@@ -655,7 +689,43 @@ async function deleteOrder(row, cardEl) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
-// Просмотр фото — открывается в новой вкладке (без модального окна)
+// ★★★ ПРЯМОЕ ОТКРЫТИЕ ФОТО ПО ССЫЛКЕ БЕЗ МОДАЛЬНОГО ОКНА ★★★
+// Создаём полупрозрачный оверлей, который показывает картинку и закрывается по клику
+function showFullscreenImage(imageUrl) {
+    // Удаляем предыдущий оверлей, если есть
+    const existingOverlay = document.querySelector('.image-link-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'image-link-overlay';
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    img.alt = 'Фото детали';
+    const closeHint = document.createElement('div');
+    closeHint.className = 'close-image-hint';
+    closeHint.innerText = '✖ Нажмите в любом месте, чтобы закрыть';
+    overlay.appendChild(img);
+    overlay.appendChild(closeHint);
+    document.body.appendChild(overlay);
+    
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target === img || e.target === closeHint) {
+            overlay.remove();
+        }
+    });
+    // Закрытие по Escape
+    const keyHandler = (e) => {
+        if (e.key === 'Escape') {
+            if (document.querySelector('.image-link-overlay')) {
+                document.querySelector('.image-link-overlay').remove();
+                document.removeEventListener('keydown', keyHandler);
+            }
+        }
+    };
+    document.addEventListener('keydown', keyHandler);
+}
+
+// Просмотр фото (если есть) — открываем сразу в полноэкранном режиме по ссылке
 async function viewPhoto(partNumber) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
@@ -664,17 +734,17 @@ async function viewPhoto(partNumber) {
     try {
         const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
         if (res?.success && res.hasPhoto && res.photoUrl) {
-            // Открываем фото в новой вкладке
-            window.open(res.photoUrl, '_blank');
+            // ★ ОТКРЫВАЕМ ФОТО ПРЯМО БЕЗ МОДАЛЬНОГО ОКНА — ТОЛЬКО ОВЕРЛЕЙ С ИЗОБРАЖЕНИЕМ
+            showFullscreenImage(res.photoUrl);
         } else {
-            showToast('Фото отсутствует', true);
+            showToast('Фото отсутствует. Добавьте фото через кнопку "Добавить фото"', true);
         }
     } catch(err) {
         showToast('Ошибка загрузки фото', true);
     }
 }
 
-// Добавление фото — сразу открывается системное меню выбора файлов
+// ПРЯМОЙ ВЫЗОВ ГАЛЕРЕИ (системное меню выбора файлов)
 function addPhotoDirect(partNumber, cardElement, buttonElement) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
@@ -781,7 +851,6 @@ async function renderOrders(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        // Проверяем наличие фото
         let hasPhoto = false;
         try {
             const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
@@ -792,7 +861,7 @@ async function renderOrders(orders) {
         if (hasPhoto) {
             photoBtn.className = 'photo-card-btn has-photo';
             photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
-            photoBtn.onclick = () => viewPhoto(order.partNumber); // Открывается в новой вкладке
+            photoBtn.onclick = () => viewPhoto(order.partNumber);
         } else {
             photoBtn.className = 'photo-card-btn';
             photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
