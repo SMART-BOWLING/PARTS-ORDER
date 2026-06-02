@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Фото через галерею</title>
+<title>PARTS ORDER — Фото в новой вкладке</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -367,35 +367,6 @@ body {
     from { opacity: 0; transform: translateX(-50%) translateY(20px); }
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 2000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.95);
-}
-.modal-content {
-    margin: auto;
-    display: block;
-    max-width: 90%;
-    max-height: 80%;
-    position: absolute;
-    top: 45%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-.close-modal {
-    position: absolute;
-    top: 20px;
-    right: 35px;
-    color: #f1f1f1;
-    font-size: 40px;
-    font-weight: bold;
-    cursor: pointer;
-}
 .hidden-file-input {
     display: none;
 }
@@ -441,13 +412,7 @@ body {
     </div>
 </div>
 
-<!-- Модальное окно для просмотра фото -->
-<div id="viewPhotoModal" class="modal">
-    <span class="close-modal">&times;</span>
-    <img class="modal-content" id="viewModalImage">
-</div>
-
-<!-- Скрытый input для выбора файла (откроет системное меню: камера/галерея/файлы) -->
+<!-- Скрытый input для выбора файла (сразу открывает системное меню "Камера/Галерея/Файлы") -->
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
@@ -615,7 +580,7 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders = Array.isArray(orders) ? orders : [];
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
-        await applyFiltersWithCheck(); // ждем чтобы фото статус обновились
+        applyFilters();
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
             setTimeout(() => {
@@ -673,7 +638,7 @@ async function updateStatus(row, newStatus, selectEl) {
         }
         const idx = allOrders.findIndex(o => o.row == row);
         if (idx !== -1) allOrders[idx].status = newStatus;
-        await applyFiltersWithCheck();
+        applyFilters();
         showToast(`Статус изменён на "${newStatus}"`);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectEl.value = original; }
     finally { selectEl.disabled = false; }
@@ -690,7 +655,7 @@ async function deleteOrder(row, cardEl) {
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
-// Просмотр фото (уже загруженного)
+// Просмотр фото — открывается в новой вкладке (без модального окна)
 async function viewPhoto(partNumber) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
@@ -699,10 +664,8 @@ async function viewPhoto(partNumber) {
     try {
         const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
         if (res?.success && res.hasPhoto && res.photoUrl) {
-            const modal = document.getElementById('viewPhotoModal');
-            const modalImg = document.getElementById('viewModalImage');
-            modalImg.src = res.photoUrl;
-            modal.style.display = 'block';
+            // Открываем фото в новой вкладке
+            window.open(res.photoUrl, '_blank');
         } else {
             showToast('Фото отсутствует', true);
         }
@@ -711,23 +674,20 @@ async function viewPhoto(partNumber) {
     }
 }
 
-// ========== ОТКРЫТИЕ ГАЛЕРЕИ / КАМЕРЫ ПРЯМО ПРИ КЛИКЕ ==========
-// Эта функция вызывается по кнопке "Добавить фото" и сразу открывает системный диалог выбора файлов
-function openPhotoPicker(partNumber, cardElement, buttonElement) {
+// Добавление фото — сразу открывается системное меню выбора файлов
+function addPhotoDirect(partNumber, cardElement, buttonElement) {
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
         return;
     }
-    // Сохраняем данные для загрузки после выбора файла
     currentPartNumberForPhoto = partNumber;
     currentCardElement = cardElement;
     currentPhotoButton = buttonElement;
     
     const fileInput = document.getElementById('fileInput');
-    // Убираем capture, чтобы на телефонах показывался выбор: камера или галерея
     fileInput.removeAttribute('capture');
-    fileInput.value = ''; // сброс для повторного выбора того же файла
-    fileInput.click();    // ОТКРЫВАЕТСЯ МЕНЮ: КАМЕРА/ГАЛЕРЕЯ/ФАЙЛЫ
+    fileInput.value = '';
+    fileInput.click();
 }
 
 // Загрузка фото в Cloudinary + сохранение ссылки
@@ -745,7 +705,6 @@ async function uploadPhoto(file) {
             if (res?.success) {
                 showToast('✅ Фото сохранено');
                 if (currentPhotoButton) {
-                    // Превращаем кнопку в "Фото есть" с возможностью просмотра
                     currentPhotoButton.classList.add('has-photo');
                     currentPhotoButton.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
                     const newBtn = currentPhotoButton.cloneNode(true);
@@ -764,8 +723,7 @@ function handleFileSelect(e) {
     document.getElementById('fileInput').value = '';
 }
 
-// Применяем фильтры и перерисовываем список с проверкой статуса фото
-async function applyFiltersWithCheck() {
+function applyFilters() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
@@ -775,7 +733,7 @@ async function applyFiltersWithCheck() {
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
     if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
-    await renderOrders(filtered);
+    renderOrders(filtered);
 }
 
 async function renderOrders(orders) {
@@ -823,23 +781,22 @@ async function renderOrders(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        // Проверка наличия фото
+        // Проверяем наличие фото
         let hasPhoto = false;
         try {
             const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
             if (photoRes?.success && photoRes.hasPhoto) hasPhoto = true;
-        } catch(e) { /* молча */ }
+        } catch(e) {}
         
         const photoBtn = document.createElement('button');
         if (hasPhoto) {
             photoBtn.className = 'photo-card-btn has-photo';
             photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
-            photoBtn.onclick = () => viewPhoto(order.partNumber);
+            photoBtn.onclick = () => viewPhoto(order.partNumber); // Открывается в новой вкладке
         } else {
             photoBtn.className = 'photo-card-btn';
             photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            // ★★★ ПРИ КЛИКЕ ОТКРЫВАЕТСЯ СИСТЕМНОЕ МЕНЮ ВЫБОРА ФАЙЛА (КАМЕРА/ГАЛЕРЕЯ) ★★★
-            photoBtn.onclick = () => openPhotoPicker(order.partNumber, card, photoBtn);
+            photoBtn.onclick = () => addPhotoDirect(order.partNumber, card, photoBtn);
         }
         
         const delBtn = document.createElement('button');
@@ -854,31 +811,17 @@ async function renderOrders(orders) {
     }
 }
 
-// Старая applyFilters для обратной совместимости, используем новую async
-function applyFilters() { applyFiltersWithCheck(); }
-
 // Инициализация
 window.addEventListener('load', async () => {
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
     document.getElementById('saveOrderInlineBtn').addEventListener('click', saveOrder);
-    document.getElementById('statusFilter').addEventListener('change', () => applyFiltersWithCheck());
-    document.getElementById('clubFilter').addEventListener('change', () => applyFiltersWithCheck());
-    document.getElementById('searchInput').addEventListener('keyup', () => applyFiltersWithCheck());
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('clubFilter').addEventListener('change', applyFilters);
+    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
     
-    const viewModal = document.getElementById('viewPhotoModal');
-    const closeBtns = document.querySelectorAll('.close-modal');
     const fileInput = document.getElementById('fileInput');
-    
-    closeBtns.forEach(btn => {
-        btn.onclick = () => { viewModal.style.display = 'none'; };
-    });
-    
     fileInput.onchange = handleFileSelect;
-    
-    window.onclick = (e) => {
-        if (e.target == viewModal) viewModal.style.display = 'none';
-    };
     
     await loadOrders(true);
 });
