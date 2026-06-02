@@ -31,7 +31,6 @@ body {
     margin: 0 auto;
 }
 
-/* ----- ВСЕ СКРУГЛЕНИЯ МИНИМАЛЬНЫЕ (4-8px) ----- */
 .form-card {
     background: var(--white);
     border-radius: 8px;
@@ -71,7 +70,6 @@ body {
     box-shadow: 0 0 0 3px rgba(220,20,60,0.1);
 }
 
-/* ----- СТРОКИ ПОЗИЦИЙ ----- */
 .part-row {
     display: flex;
     align-items: center;
@@ -82,7 +80,6 @@ body {
     border: 1px solid var(--light);
     border-radius: 6px;
     margin-bottom: 12px;
-    transition: all 0.2s;
 }
 
 .field {
@@ -128,31 +125,6 @@ body {
     box-shadow: 0 0 0 1px var(--accent);
 }
 
-/* Кнопка фото */
-.photo-btn {
-    width: 48px;
-    height: 48px;
-    border: none;
-    border-radius: 6px;
-    background: #4a6fa5;
-    color: var(--white);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: .2s;
-    flex-shrink: 0;
-}
-.photo-btn:hover {
-    opacity: 0.9;
-}
-.photo-btn.has-photo {
-    background: #28a745;
-}
-.photo-btn:active {
-    transform: scale(.96);
-}
-
 .delete-btn {
     width: 48px;
     height: 48px;
@@ -164,23 +136,13 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: .2s;
     flex-shrink: 0;
 }
 
-.delete-btn:hover {
-    opacity: 0.9;
-}
-.delete-btn:active {
-    transform: scale(.96);
-}
-
-/* --- КНОПКИ В ДВЕ СТРОКИ --- */
 .double-action-row {
     display: flex;
     gap: 14px;
     margin: 8px 0 6px 0;
-    align-items: center;
 }
 .add-position-btn {
     background: #f0f2f5;
@@ -191,16 +153,11 @@ body {
     font-size: 15px;
     font-weight: 500;
     cursor: pointer;
-    transition: 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     flex: 1;
-}
-.add-position-btn:hover {
-    background: #e6e9ef;
-    border-color: var(--dark);
 }
 .save-order-btn-inline {
     background: var(--dark);
@@ -211,16 +168,13 @@ body {
     padding: 12px 16px;
     border-radius: 6px;
     font-size: 16px;
-    transition: 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     flex: 1;
 }
-.save-order-btn-inline:active { transform: scale(0.98); }
 
-/* Кнопка открыть список заказов */
 .refresh-btn-under {
     background: var(--dark);
     color: white;
@@ -234,7 +188,6 @@ body {
     margin-top: 12px;
 }
 
-/* Карточки заказов */
 .card {
     background: var(--white);
     border-radius: 8px;
@@ -242,14 +195,12 @@ body {
     margin-bottom: 16px;
     overflow: hidden;
     border: 1px solid #eef2f6;
-    transition: all 0.3s ease;
 }
 .card.new-order {
     animation: highlightNew 0.8s ease;
 }
 @keyframes highlightNew {
     0% { background: #fff; transform: scale(0.98); opacity: 0.5; }
-    50% { background: #fff; transform: scale(1); }
     100% { background: var(--white); opacity: 1; }
 }
 .order-table {
@@ -286,8 +237,6 @@ body {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    width: auto;
-    margin: 0;
 }
 .status-select.status-pending {
     color: var(--accent);
@@ -305,19 +254,37 @@ body {
     padding: 12px 16px 18px;
     background: white;
     border-top: 1px solid #edf2f7;
-    justify-content: space-between;
+}
+.photo-card-btn {
+    background: #4a6fa5;
+    color: white;
+    border: none;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+}
+.photo-card-btn.has-photo {
+    background: #28a745;
+}
+.photo-card-btn i {
+    font-size: 14px;
 }
 .delete-order-btn {
     background: white;
     color: var(--accent);
     border: 1px solid var(--accent);
-    width: 100%;
-    transition: 0.2s;
+    flex: 1;
     padding: 10px 12px;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
-    text-align: center;
     cursor: pointer;
 }
 .delete-order-btn:hover {
@@ -330,11 +297,9 @@ body {
     background: white;
     border-radius: 8px;
     color: var(--dark);
-    border: 1px solid #eef2f6;
 }
 .filter-search-container {
     display: none;
-    transition: all 0.2s ease;
     margin-top: 4px;
     margin-bottom: 12px;
 }
@@ -356,7 +321,6 @@ body {
     background: #fff;
     cursor: pointer;
     border-color: #e2e8f0;
-    margin-bottom: 0;
 }
 .search-box {
     width: 100%;
@@ -364,7 +328,6 @@ body {
     border-radius: 6px;
     border: 1px solid #e2e8f0;
     font-size: 16px;
-    margin-bottom: 0;
     margin-top: 6px;
 }
 .loading-spinner {
@@ -391,12 +354,10 @@ body {
     font-weight: 500;
     z-index: 1000;
     animation: fadeUp 0.25s ease;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-    border-radius: 6px !important;
+    border-radius: 6px;
     text-align: center;
     min-width: 260px;
     max-width: 90vw;
-    line-height: 1.4;
 }
 .toast.error {
     background: var(--accent);
@@ -405,8 +366,6 @@ body {
     from { opacity: 0; transform: translateX(-50%) translateY(20px); }
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
-
-/* Модальное окно для фото */
 .modal {
     display: none;
     position: fixed;
@@ -415,7 +374,7 @@ body {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.9);
+    background-color: rgba(0,0,0,0.95);
 }
 .modal-content {
     margin: auto;
@@ -459,21 +418,14 @@ body {
     align-items: center;
     gap: 10px;
 }
-.photo-btn-modal:hover {
-    opacity: 0.9;
-}
 .hidden-file-input {
     display: none;
 }
-
 @media (max-width: 600px) {
     body { padding: 15px; }
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
-    .field i { left: 12px; }
-    .part-input { padding-left: 36px; }
     .form-card { padding: 16px; }
-    .double-action-row { gap: 10px; }
     .photo-buttons { padding: 10px 15px; gap: 10px; }
     .photo-btn-modal { padding: 8px 16px; font-size: 14px; }
 }
@@ -506,14 +458,13 @@ body {
                 <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные</option><option value="delivered">Доставленные</option></select></div>
                 <div class="filter-group"><select id="clubFilter"><option value="all">Все клубы</option><option value="BLOCKBUSTER">BLOCKBUSTER</option><option value="SKYMALL">SKYMALL</option><option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option></select></div>
             </div>
-            <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу" onkeyup="applyFilters()">
+            <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу">
         </div>
         
         <div id="ordersList"></div>
     </div>
 </div>
 
-<!-- Модальное окно для фото -->
 <div id="photoModal" class="modal">
     <span class="close-modal">&times;</span>
     <img class="modal-content" id="modalImage">
@@ -523,22 +474,18 @@ body {
     </div>
 </div>
 
-<input type="file" id="fileInput" class="hidden-file-input" accept="image/*" capture="environment">
+<input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
-// ----- ИНТЕГРАЦИЯ С GOOGLE SHEETS -----
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyMWOYcokGxfa00UKxOYrqDB3AhsPP4kWimmmJvFwVpdwOLyVnsjTXrlY8xoScB5QcD3g/exec';
-
-// Cloudinary конфигурация
 const CLOUDINARY_CLOUD_NAME = 'dplmdnxvk';
 const CLOUDINARY_UPLOAD_PRESET = 'ADD_SKYMALL';
 
 let allOrders = [];
 let isLoading = false;
 let currentPartNumberForPhoto = null;
-let currentPhotoButton = null;
+let currentCardElement = null;
 
-// ---- Управление динамическими позициями ----
 let itemCounter = 0;
 let currentItems = [];
 
@@ -546,11 +493,11 @@ function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
     if (currentItems.length === 0) {
-        container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px; font-size:14px;">Нет позиций, нажмите "Добавить"</div>';
+        container.innerHTML = '<div style="color:#8a9bb0; text-align:center; padding:12px;">Нет позиций, нажмите "Добавить"</div>';
         return;
     }
     container.innerHTML = '';
-    currentItems.forEach((item, idx) => {
+    currentItems.forEach((item) => {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'part-row';
         rowDiv.dataset.id = item.id;
@@ -564,13 +511,7 @@ function renderItems() {
         partInput.className = 'part-input';
         partInput.placeholder = '000-000-000';
         partInput.value = item.partNumber || '';
-        partInput.autocomplete = 'off';
-        partInput.addEventListener('input', (e) => { 
-            item.partNumber = e.target.value;
-            if (item.partNumber && item.partNumber.trim() !== '') {
-                checkPhotoAvailability(item.id, item.partNumber.trim());
-            }
-        });
+        partInput.addEventListener('input', (e) => { item.partNumber = e.target.value; });
         fieldDiv.appendChild(icon);
         fieldDiv.appendChild(partInput);
         
@@ -579,45 +520,20 @@ function renderItems() {
         qtyInput.className = 'qty-input';
         qtyInput.placeholder = 'Qty';
         qtyInput.min = 1;
-        
-        if (item.quantity && item.quantity > 0) {
-            qtyInput.value = item.quantity;
-        } else {
-            qtyInput.value = '';
-            if (!item.quantity || item.quantity <= 0) {
-                item.quantity = null;
-            }
-        }
-        
+        qtyInput.value = item.quantity || '';
         qtyInput.addEventListener('input', (e) => {
             const val = e.target.value;
-            if (val === '') {
-                item.quantity = null;
-                return;
-            }
+            if (val === '') { item.quantity = null; return; }
             const num = parseInt(val, 10);
-            if (!isNaN(num) && num >= 1) {
-                item.quantity = num;
-            } else {
-                qtyInput.value = '';
-                item.quantity = null;
-            }
+            if (!isNaN(num) && num >= 1) item.quantity = num;
+            else { qtyInput.value = ''; item.quantity = null; }
         });
-        
-        const photoBtn = document.createElement('button');
-        photoBtn.className = 'photo-btn';
-        photoBtn.title = 'Фото детали';
-        photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i>';
-        photoBtn.dataset.partNumber = item.partNumber;
-        photoBtn.onclick = () => openPhotoModal(item.partNumber, photoBtn);
         
         const delBtn = document.createElement('button');
         delBtn.className = 'delete-btn';
-        delBtn.title = 'Удалить позицию';
         delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
         if (currentItems.length === 1) {
             delBtn.style.opacity = '0.5';
-            delBtn.style.cursor = 'not-allowed';
             delBtn.disabled = true;
         } else {
             delBtn.onclick = () => removeItem(item.id);
@@ -625,253 +541,118 @@ function renderItems() {
         
         rowDiv.appendChild(fieldDiv);
         rowDiv.appendChild(qtyInput);
-        rowDiv.appendChild(photoBtn);
         rowDiv.appendChild(delBtn);
         container.appendChild(rowDiv);
-        
-        // Проверяем фото если номер уже есть
-        if (item.partNumber && item.partNumber.trim() !== '') {
-            checkPhotoAvailability(item.id, item.partNumber);
-        }
     });
-}
-
-async function checkPhotoAvailability(itemId, partNumber) {
-    if (!partNumber || partNumber.trim() === '') return;
-    try {
-        const result = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
-        if (result && result.success && result.hasPhoto) {
-            const photoBtn = document.querySelector(`.part-row[data-id="${itemId}"] .photo-btn`);
-            if (photoBtn) {
-                photoBtn.classList.add('has-photo');
-                photoBtn.title = 'Фото есть - нажмите чтобы посмотреть или обновить';
-            }
-        }
-    } catch(e) {
-        console.log('Ошибка проверки фото:', e);
-    }
 }
 
 function addNewItem() {
-    const newId = Date.now() + itemCounter++;
-    currentItems.push({
-        id: newId,
-        partNumber: '',
-        quantity: null
-    });
+    currentItems.push({ id: Date.now() + itemCounter++, partNumber: '', quantity: null });
     renderItems();
 }
 
 function removeItem(id) {
     if (currentItems.length <= 1) {
-        showToast('Нельзя удалить последнюю позицию. Заполните её или добавьте новую.', true);
+        showToast('Нельзя удалить последнюю позицию', true);
         return;
     }
-    const index = currentItems.findIndex(i => i.id == id);
-    if (index !== -1) {
-        currentItems.splice(index, 1);
-        renderItems();
-    }
+    currentItems = currentItems.filter(i => i.id != id);
+    renderItems();
 }
 
 function resetItemsToDefault() {
-    currentItems = [];
-    itemCounter = 0;
-    currentItems.push({
-        id: Date.now() + itemCounter++,
-        partNumber: '',
-        quantity: null
-    });
+    currentItems = [{ id: Date.now() + itemCounter++, partNumber: '', quantity: null }];
     renderItems();
 }
 
 function validateItems() {
-    if (currentItems.length === 0) {
-        showToast('Добавьте хотя бы одну позицию (деталь)', true);
-        return false;
-    }
+    if (currentItems.length === 0) return false;
     let hasValid = false;
-    for (let i=0; i<currentItems.length; i++) {
+    for (let i = 0; i < currentItems.length; i++) {
         const it = currentItems[i];
         const partOk = it.partNumber && it.partNumber.trim() !== '';
-        const qtyOk = it.quantity !== null && !isNaN(it.quantity) && it.quantity > 0;
+        const qtyOk = it.quantity !== null && it.quantity > 0;
         if (partOk && qtyOk) hasValid = true;
-        else if (partOk && !qtyOk) { showToast(`Позиция ${i+1}: укажите корректное количество`, true); return false; }
+        else if (partOk && !qtyOk) { showToast(`Позиция ${i+1}: укажите количество`, true); return false; }
         else if (qtyOk && !partOk) { showToast(`Позиция ${i+1}: введите номер детали`, true); return false; }
     }
-    if (!hasValid) { showToast('Заполните номер детали и количество хотя бы в одной позиции', true); return false; }
+    if (!hasValid) { showToast('Заполните хотя бы одну позицию', true); return false; }
     return true;
 }
 
-// Функции для работы с фото
-async function openPhotoModal(partNumber, buttonElement) {
-    if (!partNumber || partNumber.trim() === '') {
-        showToast('Сначала введите номер детали', true);
-        return;
-    }
-    
-    currentPartNumberForPhoto = partNumber;
-    currentPhotoButton = buttonElement;
-    const modal = document.getElementById('photoModal');
-    const modalImg = document.getElementById('modalImage');
-    
-    modal.style.display = 'block';
-    modalImg.style.display = 'none';
-    
-    try {
-        const result = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
-        
-        if (result && result.success && result.hasPhoto && result.photoUrl) {
-            modalImg.src = result.photoUrl;
-            modalImg.style.display = 'block';
-        }
-    } catch(err) {
-        console.log('Ошибка загрузки фото:', err);
-    }
-}
-
-// Загрузка фото через Cloudinary
-async function uploadPhoto(file) {
-    if (!currentPartNumberForPhoto) {
-        showToast('Ошибка: номер детали не указан', true);
-        return;
-    }
-    
-    showToast('Загрузка фото...');
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    
-    try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        if (data.secure_url) {
-            const result = await callScriptAsync('uploadPartPhoto', { 
-                partNumber: currentPartNumberForPhoto.trim(), 
-                imageUrl: data.secure_url 
-            });
-            
-            if (result && result.success) {
-                showToast('✅ Фото успешно сохранено');
-                if (currentPhotoButton) {
-                    currentPhotoButton.classList.add('has-photo');
-                    currentPhotoButton.title = 'Фото есть - нажмите чтобы посмотреть или обновить';
-                }
-                // Обновляем фото в модальном окне
-                const modalImg = document.getElementById('modalImage');
-                modalImg.src = data.secure_url;
-                modalImg.style.display = 'block';
-            } else {
-                showToast('Ошибка сохранения фото: ' + (result?.error || 'Неизвестная ошибка'), true);
-            }
-        } else {
-            showToast('Ошибка загрузки в Cloudinary', true);
-        }
-    } catch(err) {
-        showToast('Ошибка: ' + err.message, true);
-    }
-}
-
-// Обработка выбора файла
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        uploadPhoto(file);
-    }
-    // Очищаем input, чтобы можно было выбрать тот же файл снова
-    document.getElementById('fileInput').value = '';
-}
-
-// Запуск камеры на мобильном устройстве
-function openCamera() {
-    const fileInput = document.getElementById('fileInput');
-    fileInput.setAttribute('capture', 'environment');
-    fileInput.click();
-}
-
-// Открытие галереи
-function openGallery() {
-    const fileInput = document.getElementById('fileInput');
-    fileInput.removeAttribute('capture');
-    fileInput.click();
-}
-
-function showToast(msgHtml, isError = false) {
+function showToast(msg, isError = false) {
     const toast = document.createElement('div');
     toast.className = 'toast' + (isError ? ' error' : '');
-    toast.innerHTML = msgHtml;
+    toast.innerHTML = msg;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
 
 function formatDateTime(date) {
     if (!date || !(date instanceof Date) || isNaN(date)) return '—';
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${day}.${month}.${year}, ${hours}:${minutes}:${seconds}`;
+    const d = String(date.getDate()).padStart(2,'0');
+    const m = String(date.getMonth()+1).padStart(2,'0');
+    const y = date.getFullYear();
+    const h = String(date.getHours()).padStart(2,'0');
+    const min = String(date.getMinutes()).padStart(2,'0');
+    const s = String(date.getSeconds()).padStart(2,'0');
+    return `${d}.${m}.${y}, ${h}:${min}:${s}`;
 }
 
-function parseTimestamp(timestamp) {
-    if (!timestamp) return null;
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === 'string') { let date = new Date(timestamp); if (!isNaN(date)) return date; }
-    if (typeof timestamp === 'number') { let date = new Date(timestamp); if (!isNaN(date)) return date; }
+function parseTimestamp(ts) {
+    if (!ts) return null;
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'string') { let d = new Date(ts); if (!isNaN(d)) return d; }
+    if (typeof ts === 'number') { let d = new Date(ts); if (!isNaN(d)) return d; }
     return null;
 }
 
-function escapeHtml(str) { if(!str) return ''; return String(str).replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-
-function callScriptAsync(functionName, data) {
+function callScriptAsync(fn, data) {
     return new Promise((resolve, reject) => {
-        const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-        window[callbackName] = function(response) {
-            delete window[callbackName];
-            if (response && response.error) reject(new Error(response.error));
-            else resolve(response && response.result ? response.result : response);
+        const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2,8);
+        window[cb] = function(res) {
+            delete window[cb];
+            if (res && res.error) reject(new Error(res.error));
+            else resolve(res && res.result ? res.result : res);
         };
         const params = new URLSearchParams();
-        params.append('fn', functionName);
+        params.append('fn', fn);
         if (data) params.append('data', JSON.stringify(data));
-        params.append('callback', callbackName);
+        params.append('callback', cb);
         const script = document.createElement('script');
         script.src = `${SCRIPT_URL}?${params.toString()}`;
-        script.onerror = () => { delete window[callbackName]; reject(new Error('Сетевая ошибка')); };
+        script.onerror = () => { delete window[cb]; reject(new Error('Сетевая ошибка')); };
         document.body.appendChild(script);
-        setTimeout(() => { if (window[callbackName]) { delete window[callbackName]; reject(new Error('Таймаут запроса')); } }, 25000);
+        setTimeout(() => { if (window[cb]) { delete window[cb]; reject(new Error('Таймаут')); } }, 25000);
     });
 }
 
-async function loadOrders(showLoading = true, highlightNewId = null) {
+async function loadOrders(showLoading = true, highlightRow = null) {
     if (isLoading) return;
     isLoading = true;
     const container = document.getElementById('ordersList');
     const filterBlock = document.getElementById('filterSearchBlock');
     if (filterBlock) filterBlock.style.display = 'none';
-    if (container && showLoading) container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка заказов...</div>';
+    if (container && showLoading) container.innerHTML = '<div class="empty-state"><div class="loading-spinner"></div><br>Загрузка...</div>';
     try {
         const orders = await callScriptAsync('getOrders');
         if (orders && orders.error) throw new Error(orders.error);
         allOrders = Array.isArray(orders) ? orders : [];
-        allOrders.forEach(order => { if (order.timestamp) order.timestampObj = parseTimestamp(order.timestamp); else order.timestampObj = null; });
-        allOrders.sort((a,b) => (b.timestampObj?.getTime() || 0) - (a.timestampObj?.getTime() || 0));
+        allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
+        allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         applyFilters();
         if (filterBlock) filterBlock.style.display = 'block';
-        if (highlightNewId) setTimeout(() => { const newCard = document.querySelector(`.card[data-row="${highlightNewId}"]`); if (newCard) { newCard.classList.add('new-order'); setTimeout(() => newCard.classList.remove('new-order'), 1000); newCard.scrollIntoView({ behavior:'smooth', block:'center' }); } }, 100);
-        showToast(`<i class="fas fa-check-circle"></i> Загружено ${allOrders.length} заказов`);
+        if (highlightRow) {
+            setTimeout(() => {
+                const card = document.querySelector(`.card[data-row="${highlightRow}"]`);
+                if (card) { card.classList.add('new-order'); setTimeout(() => card.classList.remove('new-order'), 1000); card.scrollIntoView({ behavior:'smooth', block:'center' }); }
+            }, 100);
+        }
     } catch(err) {
         console.error(err);
-        if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> Ошибка: ${escapeHtml(err.message)}<br><br><button onclick="manualRefresh()" style="margin-top:15px;background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;"><i class="fas fa-sync-alt"></i> Попробовать снова</button></div>`;
+        if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> ${err.message}<br><br><button onclick="manualRefresh()" style="background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;">↻ Повторить</button></div>`;
         if (filterBlock) filterBlock.style.display = 'none';
-        showToast(`Ошибка загрузки: ${err.message}`, true);
+        showToast(`Ошибка: ${err.message}`, true);
     } finally { isLoading = false; }
 }
 
@@ -879,93 +660,122 @@ async function manualRefresh() { await loadOrders(true); }
 
 async function saveOrder() {
     const club = document.getElementById('clubSelect').value;
-    if (!club) { showToast('Выберите боулинг-клуб', true); return; }
+    if (!club) { showToast('Выберите клуб', true); return; }
     if (!validateItems()) return;
-    const itemsToSave = [];
-    for (const item of currentItems) {
-        if (item.partNumber && item.partNumber.trim() !== '' && (item.quantity !== null && !isNaN(item.quantity) && item.quantity > 0)) {
-            itemsToSave.push({ partNumber: item.partNumber.trim(), quantity: item.quantity });
-        }
-    }
-    if (itemsToSave.length === 0) { showToast('Нет заполненных позиций для сохранения', true); return; }
+    const itemsToSave = currentItems.filter(it => it.partNumber?.trim() && it.quantity > 0);
+    if (!itemsToSave.length) { showToast('Нет заполненных позиций', true); return; }
     const btn = document.getElementById('saveOrderInlineBtn');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Заказ...';
     btn.disabled = true;
     try {
         const now = new Date();
-        const timestampISO = now.toISOString();
-        let lastRowId = null;
+        const ts = now.toISOString();
+        let lastRow = null;
         for (const it of itemsToSave) {
-            const result = await callScriptAsync('addOrder', { partNumber: it.partNumber, quantity: it.quantity, club: club, timestamp: timestampISO });
-            if (result && result.error) throw new Error(result.error);
-            if (result && result.row) lastRowId = result.row;
+            const res = await callScriptAsync('addOrder', { partNumber: it.partNumber.trim(), quantity: it.quantity, club, timestamp: ts });
+            if (res?.error) throw new Error(res.error);
+            if (res?.row) lastRow = res.row;
         }
-        showToast(`<i class="fas fa-check-circle"></i> Сохранено ${itemsToSave.length} позиций для ${club}<br>${formatDateTime(now)}`);
+        showToast(`✅ Сохранено ${itemsToSave.length} позиций для ${club}<br>${formatDateTime(now)}`);
         resetItemsToDefault();
         document.getElementById('clubSelect').value = '';
-        await loadOrders(true, lastRowId);
+        await loadOrders(true, lastRow);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); }
     finally { btn.innerHTML = originalText; btn.disabled = false; }
 }
 
-async function updateStatus(row, newStatus, selectElement) {
-    if (!selectElement) return;
-    const originalValue = selectElement.value;
-    selectElement.disabled = true;
-    selectElement.style.opacity = '0.6';
+async function updateStatus(row, newStatus, selectEl) {
+    const original = selectEl.value;
+    selectEl.disabled = true;
     try {
-        const result = await callScriptAsync('updateStatus', { row, status: newStatus });
-        if (result && result.error) throw new Error(result.error);
-        
-        if (result.skymallUpdate && result.skymallUpdate.success) {
-            const details = result.skymallUpdate.details;
-            if (details.existed) {
-                showToast(`📦 SKYMALL: ${details.partNumber} - остаток обновлён: ${details.oldQty} → ${details.newQty} шт.`);
-            } else {
-                showToast(`📦 SKYMALL: новая деталь ${details.partNumber} добавлена, остаток: ${details.newQty} шт.`);
-            }
-        } else if (result.skymallUpdate && !result.skymallUpdate.success) {
-            showToast(`⚠️ Ошибка SKYMALL: ${result.skymallUpdate.message}`, true);
+        const res = await callScriptAsync('updateStatus', { row, status: newStatus });
+        if (res?.error) throw new Error(res.error);
+        if (res.skymallUpdate?.success) {
+            const d = res.skymallUpdate.details;
+            if (d.existed) showToast(`📦 SKYMALL: ${d.partNumber} ${d.oldQty} → ${d.newQty} шт.`);
+            else showToast(`📦 SKYMALL: новая деталь ${d.partNumber}, остаток ${d.newQty} шт.`);
         }
-        
         const idx = allOrders.findIndex(o => o.row == row);
         if (idx !== -1) allOrders[idx].status = newStatus;
         applyFilters();
         showToast(`Статус изменён на "${newStatus}"`);
-    } catch(err) { 
-        showToast(`Ошибка: ${err.message}`, true); 
-        selectElement.value = originalValue; 
-    }
-    finally { 
-        selectElement.disabled = false; 
-        selectElement.style.opacity = '1'; 
-    }
+    } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectEl.value = original; }
+    finally { selectEl.disabled = false; }
 }
 
-async function deleteOrder(row, cardElement) {
-    if (!confirm('Удалить заказ навсегда?')) return;
-    
-    const card = cardElement.closest('.card');
-    if (card) { 
-        card.style.opacity = '0.5'; 
-        card.style.pointerEvents = 'none'; 
-    }
-    
+async function deleteOrder(row, cardEl) {
+    if (!confirm('Удалить заказ?')) return;
+    const card = cardEl.closest('.card');
+    if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
     try {
-        const result = await callScriptAsync('deleteOrder', { row });
-        if (result && result.error) throw new Error(result.error);
-        
+        await callScriptAsync('deleteOrder', { row });
         await loadOrders(true);
         showToast('Заказ удалён');
-        
-    } catch(err) { 
-        showToast(`Ошибка: ${err.message}`, true); 
-        if(card){ 
-            card.style.opacity='1'; 
-            card.style.pointerEvents='auto'; 
-        } 
+    } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
+}
+
+async function openCardPhoto(partNumber, cardElement) {
+    if (!partNumber || partNumber.trim() === '') {
+        showToast('Номер детали не указан', true);
+        return;
     }
+    currentPartNumberForPhoto = partNumber;
+    currentCardElement = cardElement;
+    const modal = document.getElementById('photoModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = 'block';
+    modalImg.style.display = 'none';
+    try {
+        const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
+        if (res?.success && res.hasPhoto && res.photoUrl) {
+            modalImg.src = res.photoUrl;
+            modalImg.style.display = 'block';
+        }
+    } catch(err) { console.log(err); }
+}
+
+async function uploadPhoto(file) {
+    if (!currentPartNumberForPhoto) return;
+    showToast('Загрузка фото...');
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
+        const data = await response.json();
+        if (data.secure_url) {
+            const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url });
+            if (res?.success) {
+                showToast('✅ Фото сохранено');
+                const modalImg = document.getElementById('modalImage');
+                modalImg.src = data.secure_url;
+                modalImg.style.display = 'block';
+                // Обновляем кнопку на карточке
+                if (currentCardElement) {
+                    const btn = currentCardElement.querySelector('.photo-card-btn');
+                    if (btn) btn.classList.add('has-photo');
+                }
+            } else showToast('Ошибка сохранения', true);
+        } else showToast('Ошибка Cloudinary', true);
+    } catch(err) { showToast('Ошибка: ' + err.message, true); }
+}
+
+function handleFileSelect(e) {
+    if (e.target.files[0]) uploadPhoto(e.target.files[0]);
+    document.getElementById('fileInput').value = '';
+}
+
+function openCamera() {
+    const input = document.getElementById('fileInput');
+    input.setAttribute('capture', 'environment');
+    input.click();
+}
+
+function openGallery() {
+    const input = document.getElementById('fileInput');
+    input.removeAttribute('capture');
+    input.click();
 }
 
 function applyFilters() {
@@ -976,60 +786,96 @@ function applyFilters() {
     if (statusFilter === 'active') filtered = filtered.filter(o => o.status !== 'Доставлено');
     else if (statusFilter === 'delivered') filtered = filtered.filter(o => o.status === 'Доставлено');
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
-    if (search) filtered = filtered.filter(o => (o.partNumber && o.partNumber.toLowerCase().includes(search)) || (o.club && o.club.toLowerCase().includes(search)));
+    if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
     renderOrders(filtered);
 }
 
-function renderOrders(orders) {
+async function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
-    if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов.</div>'; return; }
+    if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов</div>'; return; }
     container.innerHTML = '';
-    orders.forEach(order => {
-        const card = document.createElement('div'); card.className = 'card'; card.setAttribute('data-row', order.row);
+    for (const order of orders) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.setAttribute('data-row', order.row);
+        
         let dateStr = '—';
         if (order.timestamp) { const d = parseTimestamp(order.timestamp); if (d && !isNaN(d)) dateStr = formatDateTime(d); }
-        const table = document.createElement('table'); table.className = 'order-table';
+        
+        const table = document.createElement('table');
+        table.className = 'order-table';
         const fields = [
             { label:'Номер детали', value: order.partNumber || '—' },
             { label:'Количество', value: `${order.quantity} шт.` },
             { label:'Боулинг-клуб', value: order.club || '—' },
             { label:'Дата и время', value: dateStr }
         ];
-        fields.forEach(f => { const tr = document.createElement('tr'); const td1=document.createElement('td'); td1.textContent=f.label; const td2=document.createElement('td'); td2.textContent=f.value; tr.appendChild(td1); tr.appendChild(td2); table.appendChild(tr); });
+        fields.forEach(f => {
+            const tr = document.createElement('tr');
+            const td1 = document.createElement('td'); td1.textContent = f.label;
+            const td2 = document.createElement('td'); td2.textContent = f.value;
+            tr.appendChild(td1); tr.appendChild(td2);
+            table.appendChild(tr);
+        });
+        
         const statusTr = document.createElement('tr');
-        const statusTdL = document.createElement('td'); statusTdL.textContent='Статус';
+        const statusTdL = document.createElement('td'); statusTdL.textContent = 'Статус';
         const statusTdV = document.createElement('td');
         const curStatus = order.status || 'Активно';
-        const select = document.createElement('select'); select.className=`status-select ${curStatus==='Доставлено'?'status-delivered':'status-pending'}`;
-        select.innerHTML = `<option value="Активно" ${curStatus==='Активно'?'selected':''}>Активно</option><option value="Доставлено" ${curStatus==='Доставлено'?'selected':''}>Доставлено</option>`;
+        const select = document.createElement('select');
+        select.className = `status-select ${curStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
+        select.innerHTML = `<option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option><option value="Доставлено" ${curStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>`;
         select.onchange = (e) => updateStatus(order.row, select.value, select);
-        statusTdV.appendChild(select); statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV); table.appendChild(statusTr);
+        statusTdV.appendChild(select);
+        statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV);
+        table.appendChild(statusTr);
         card.appendChild(table);
-        const actionDiv = document.createElement('div'); actionDiv.className='action-bar';
-        const delOrderBtn = document.createElement('button'); delOrderBtn.innerHTML='<i class="fas fa-trash-alt"></i> Удалить'; delOrderBtn.className='delete-order-btn'; delOrderBtn.onclick = () => deleteOrder(order.row, card);
-        actionDiv.appendChild(delOrderBtn); card.appendChild(actionDiv);
+        
+        const actionDiv = document.createElement('div');
+        actionDiv.className = 'action-bar';
+        
+        // Кнопка фото
+        const photoBtn = document.createElement('button');
+        photoBtn.className = 'photo-card-btn';
+        photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Фото детали';
+        // Проверяем есть ли фото
+        try {
+            const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
+            if (photoRes?.success && photoRes.hasPhoto) {
+                photoBtn.classList.add('has-photo');
+                photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
+            } else {
+                photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+            }
+        } catch(e) {}
+        photoBtn.onclick = () => openCardPhoto(order.partNumber, card);
+        
+        const delBtn = document.createElement('button');
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
+        delBtn.className = 'delete-order-btn';
+        delBtn.onclick = () => deleteOrder(order.row, card);
+        
+        actionDiv.appendChild(photoBtn);
+        actionDiv.appendChild(delBtn);
+        card.appendChild(actionDiv);
         container.appendChild(card);
-    });
+    }
 }
 
-// Глобальные функции
 window.saveOrder = saveOrder;
-window.updateStatus = updateStatus;
-window.deleteOrder = deleteOrder;
-window.loadOrders = loadOrders;
-window.applyFilters = applyFilters;
 window.manualRefresh = manualRefresh;
+window.applyFilters = applyFilters;
 
-// Инициализация
 window.addEventListener('load', async () => {
     resetItemsToDefault();
     document.getElementById('addItemBtn').addEventListener('click', addNewItem);
-    const saveInline = document.getElementById('saveOrderInlineBtn');
-    if(saveInline) saveInline.addEventListener('click', saveOrder);
+    document.getElementById('saveOrderInlineBtn').addEventListener('click', saveOrder);
+    document.getElementById('statusFilter').addEventListener('change', applyFilters);
+    document.getElementById('clubFilter').addEventListener('change', applyFilters);
+    document.getElementById('searchInput').addEventListener('keyup', applyFilters);
     
-    // Настройка модального окна для фото
     const modal = document.getElementById('photoModal');
     const closeBtn = document.querySelector('.close-modal');
     const cameraBtn = document.getElementById('cameraBtn');
@@ -1040,16 +886,9 @@ window.addEventListener('load', async () => {
     cameraBtn.onclick = openCamera;
     galleryBtn.onclick = openGallery;
     fileInput.onchange = handleFileSelect;
-    
-    window.onclick = (event) => { if (event.target == modal) modal.style.display = 'none'; }
+    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; }
     
     await loadOrders(true);
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('statusFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('clubFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('searchInput')?.addEventListener('keyup', applyFilters);
 });
 </script>
 </body>
