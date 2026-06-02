@@ -429,6 +429,9 @@ let currentPhotoButton = null;
 let itemCounter = 0;
 let currentItems = [];
 
+// Кэш для фото, чтобы не делать повторные запросы
+let photoCache = {};
+
 function renderItems() {
     const container = document.getElementById('itemsContainer');
     if (!container) return;
@@ -580,6 +583,10 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders = Array.isArray(orders) ? orders : [];
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
+        
+        // Очищаем кэш фото при загрузке новых заказов
+        photoCache = {};
+        
         applyFilters();
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
@@ -657,25 +664,38 @@ async function deleteOrder(row, cardEl) {
 
 // ★★★ ПЕРЕХОД ПО ПРЯМОЙ ССЫЛКЕ НА ФОТО (открывается в новой вкладке) ★★★
 async function viewPhoto(partNumber) {
+    console.log('viewPhoto вызван для детали:', partNumber);
+    
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
         return;
     }
+    
     try {
+        // Показываем индикатор загрузки
+        showToast('Загрузка фото...');
+        
         const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber.trim() });
+        console.log('Ответ от сервера:', res);
+        
         if (res?.success && res.hasPhoto && res.photoUrl) {
-            // ОТКРЫВАЕМ ФОТО В НОВОЙ ВКЛАДКЕ / ПЕРЕХОДИМ ПО ССЫЛКЕ
+            console.log('Открываем фото по URL:', res.photoUrl);
+            // ОТКРЫВАЕМ ФОТО В НОВОЙ ВКЛАДКЕ
             window.open(res.photoUrl, '_blank');
         } else {
+            console.log('Фото не найдено');
             showToast('Фото отсутствует. Добавьте фото через кнопку "Добавить фото"', true);
         }
     } catch(err) {
-        showToast('Ошибка загрузки фото', true);
+        console.error('Ошибка при получении фото:', err);
+        showToast('Ошибка загрузки фото: ' + err.message, true);
     }
 }
 
 // Прямой вызов галереи (системное меню выбора файлов)
 function addPhotoDirect(partNumber, cardElement, buttonElement) {
+    console.log('addPhotoDirect вызван для детали:', partNumber);
+    
     if (!partNumber || partNumber.trim() === '') {
         showToast('Номер детали не указан', true);
         return;
@@ -704,6 +724,8 @@ async function uploadPhoto(file) {
             const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url });
             if (res?.success) {
                 showToast('✅ Фото сохранено');
+                // Обновляем кэш
+                photoCache[currentPartNumberForPhoto] = true;
                 if (currentPhotoButton) {
                     currentPhotoButton.classList.add('has-photo');
                     currentPhotoButton.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
@@ -736,11 +758,31 @@ function applyFilters() {
     renderOrders(filtered);
 }
 
+async function checkPhotoExists(partNumber) {
+    // Проверяем кэш
+    if (photoCache[partNumber] !== undefined) {
+        return photoCache[partNumber];
+    }
+    
+    try {
+        const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber });
+        const hasPhoto = res?.success && res.hasPhoto;
+        photoCache[partNumber] = hasPhoto;
+        return hasPhoto;
+    } catch(e) {
+        photoCache[partNumber] = false;
+        return false;
+    }
+}
+
 async function renderOrders(orders) {
     const container = document.getElementById('ordersList');
     if (!container) return;
     if (!orders.length) { container.innerHTML = '<div class="empty-state"><i class="fas fa-box-open"></i> Нет заказов</div>'; return; }
+    
+    // Сначала создаем пустые карточки
     container.innerHTML = '';
+    
     for (const order of orders) {
         const card = document.createElement('div');
         card.className = 'card';
@@ -781,33 +823,41 @@ async function renderOrders(orders) {
         const actionDiv = document.createElement('div');
         actionDiv.className = 'action-bar';
         
-        let hasPhoto = false;
-        try {
-            const photoRes = await callScriptAsync('getPartPhoto', { partNumber: order.partNumber });
-            if (photoRes?.success && photoRes.hasPhoto) hasPhoto = true;
-        } catch(e) {}
-        
         const photoBtn = document.createElement('button');
-        if (hasPhoto) {
-            photoBtn.className = 'photo-card-btn has-photo';
-            photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
-            // ★ ПРИ КЛИКЕ — ПЕРЕХОД ПО ССЫЛКЕ (новая вкладка) ★
-            photoBtn.onclick = () => viewPhoto(order.partNumber);
-        } else {
-            photoBtn.className = 'photo-card-btn';
-            photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            photoBtn.onclick = () => addPhotoDirect(order.partNumber, card, photoBtn);
-        }
+        photoBtn.className = 'photo-card-btn';
+        photoBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Проверка...';
+        photoBtn.disabled = true;
+        
+        actionDiv.appendChild(photoBtn);
         
         const delBtn = document.createElement('button');
         delBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Удалить';
         delBtn.className = 'delete-order-btn';
         delBtn.onclick = () => deleteOrder(order.row, card);
         
-        actionDiv.appendChild(photoBtn);
         actionDiv.appendChild(delBtn);
         card.appendChild(actionDiv);
         container.appendChild(card);
+        
+        // Асинхронно проверяем наличие фото
+        checkPhotoExists(order.partNumber).then(hasPhoto => {
+            if (hasPhoto) {
+                photoBtn.className = 'photo-card-btn has-photo';
+                photoBtn.innerHTML = '<i class="fa-solid fa-image"></i> Фото есть';
+                photoBtn.onclick = () => viewPhoto(order.partNumber);
+            } else {
+                photoBtn.className = 'photo-card-btn';
+                photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+                photoBtn.onclick = () => addPhotoDirect(order.partNumber, card, photoBtn);
+            }
+            photoBtn.disabled = false;
+        }).catch(err => {
+            console.error('Ошибка проверки фото:', err);
+            photoBtn.className = 'photo-card-btn';
+            photoBtn.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
+            photoBtn.onclick = () => addPhotoDirect(order.partNumber, card, photoBtn);
+            photoBtn.disabled = false;
+        });
     }
 }
 
@@ -829,6 +879,7 @@ window.addEventListener('load', async () => {
 window.saveOrder = saveOrder;
 window.manualRefresh = manualRefresh;
 window.applyFilters = applyFilters;
+window.viewPhoto = viewPhoto;
 </script>
 </body>
 </html>
