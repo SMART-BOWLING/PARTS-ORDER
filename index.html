@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — с очисткой поиска</title>
+<title>PARTS ORDER — с очисткой поиска и статусом "В пути"</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -18,6 +18,8 @@
     --photo-open-color: #f0f2f5;
     --photo-add-color: var(--dark);
     --check-btn-color: var(--dark);
+    /* Новый цвет для статуса "В пути" */
+    --in-transit-color: #e67e22;
 }
 
 * {
@@ -249,6 +251,12 @@ body {
     border-color: var(--accent);
     background: #fff5f7;
 }
+/* Стиль для статуса "В пути" */
+.status-select.status-in-transit {
+    color: var(--in-transit-color);
+    border-color: var(--in-transit-color);
+    background: #fef5e7;
+}
 .status-select.status-delivered {
     color: var(--dark);
     border-color: var(--dark);
@@ -465,7 +473,7 @@ body {
         
         <div id="filterSearchBlock" class="filter-search-container">
             <div class="filter-section">
-                <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные</option><option value="delivered">Доставленные</option></select></div>
+                <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные (В пути/Активно)</option><option value="in_transit">В пути</option><option value="delivered">Доставленные</option></select></div>
                 <div class="filter-group"><select id="clubFilter"><option value="all">Все клубы</option><option value="BLOCKBUSTER">BLOCKBUSTER</option><option value="SKYMALL">SKYMALL</option><option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option></select></div>
             </div>
             <!-- НОВЫЙ БЛОК ПОИСКА С КВАДРАТНОЙ КНОПКОЙ ОЧИСТКИ, ПОЛНОСТЬЮ СООТВЕТСТВУЕТ СТИЛЮ delete-btn (как в полях номера и количества) -->
@@ -695,8 +703,18 @@ function applyFiltersAndRenderFast() {
     const clubFilter = document.getElementById('clubFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
     let filtered = [...allOrders];
-    if (statusFilter === 'active') filtered = filtered.filter(o => o.status !== 'Доставлено');
-    else if (statusFilter === 'delivered') filtered = filtered.filter(o => o.status === 'Доставлено');
+    
+    // Обновленная логика фильтрации с учетом статуса "В пути"
+    if (statusFilter === 'active') {
+        // Активные заказы: статус "Активно" или "В пути"
+        filtered = filtered.filter(o => o.status !== 'Доставлено');
+    } else if (statusFilter === 'in_transit') {
+        // Только заказы в пути
+        filtered = filtered.filter(o => o.status === 'В пути');
+    } else if (statusFilter === 'delivered') {
+        filtered = filtered.filter(o => o.status === 'Доставлено');
+    }
+    
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
     if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
@@ -741,8 +759,20 @@ function renderOrdersFast(orders) {
         const statusTdV = document.createElement('td');
         const curStatus = order.status || 'Активно';
         const select = document.createElement('select');
-        select.className = `status-select ${curStatus === 'Доставлено' ? 'status-delivered' : 'status-pending'}`;
-        select.innerHTML = `<option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option><option value="Доставлено" ${curStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>`;
+        
+        // Определяем класс для стилизации в зависимости от статуса
+        let selectClass = 'status-select';
+        if (curStatus === 'Активно') selectClass += ' status-pending';
+        else if (curStatus === 'В пути') selectClass += ' status-in-transit';
+        else if (curStatus === 'Доставлено') selectClass += ' status-delivered';
+        select.className = selectClass;
+        
+        // Добавляем option для статуса "В пути"
+        select.innerHTML = `
+            <option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option>
+            <option value="В пути" ${curStatus === 'В пути' ? 'selected' : ''}>В пути</option>
+            <option value="Доставлено" ${curStatus === 'Доставлено' ? 'selected' : ''}>Доставлено</option>
+        `;
         select.onchange = (e) => updateStatus(order.row, select.value, select);
         statusTdV.appendChild(select);
         statusTr.appendChild(statusTdL); statusTr.appendChild(statusTdV);
