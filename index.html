@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER</title>
+<title>PARTS ORDER — Проверка наличия в MANUALS</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -18,8 +18,8 @@
     --photo-open-color: #f0f2f5;
     --photo-add-color: var(--dark);
     --check-btn-color: var(--dark);
-    /* Новый цвет для статуса "В пути" */
     --in-transit-color: #e67e22;
+    --copy-hover-bg: #eef2ff;
 }
 
 * {
@@ -237,6 +237,44 @@ body {
     text-align: right;
     word-break: break-word;
 }
+.copy-part-number {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: 8px;
+    background: transparent;
+}
+.copy-part-number:hover {
+    background: #eef2ff;
+    transform: scale(1.02);
+}
+.copy-part-number:active {
+    background: #e0e7ff;
+    transform: scale(0.98);
+}
+.copy-part-number i {
+    font-size: 12px;
+    opacity: 0.6;
+    color: #4b5563;
+}
+.copy-part-number:hover i {
+    opacity: 1;
+    color: var(--accent);
+}
+.warning-icon {
+    color: #e67e22;
+    font-size: 14px;
+    margin-left: 4px;
+    cursor: pointer;
+}
+.warning-icon:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
 .status-select {
     padding: 6px 12px;
     border-radius: 6px;
@@ -251,10 +289,9 @@ body {
     border-color: var(--accent);
     background: #fff5f7;
 }
-/* Стиль для статуса "В пути" */
 .status-select.status-in-transit {
-    color: var(--in-transit-color);
-    border-color: var(--in-transit-color);
+    color: #e67e22;
+    border-color: #e67e22;
     background: #fef5e7;
 }
 .status-select.status-delivered {
@@ -284,30 +321,13 @@ body {
     text-decoration: none;
 }
 .photo-card-btn.has-photo {
-    background: var(--photo-open-color);
-    border: 1px dashed var(--add-btn-border);
+    background: #f0f2f5;
+    border: 1px dashed #8a9bb0;
     color: var(--dark);
-    cursor: pointer;
 }
 .photo-card-btn:not(.has-photo) {
-    background: var(--photo-add-color);
+    background: var(--dark);
     color: white;
-}
-.photo-card-btn[disabled],
-.photo-card-btn:disabled {
-    background: var(--check-btn-color);
-    color: white;
-    opacity: 0.7;
-    cursor: wait;
-}
-.photo-link {
-    text-decoration: none;
-    color: white;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    justify-content: center;
 }
 .delete-order-btn {
     background: white;
@@ -355,7 +375,6 @@ body {
     cursor: pointer;
     border-color: #e2e8f0;
 }
-/* НОВЫЙ КОНТЕЙНЕР ПОИСКА С КВАДРАТНОЙ КНОПКОЙ ОЧИСТКИ */
 .search-wrapper {
     position: relative;
     display: flex;
@@ -376,7 +395,6 @@ body {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(220,20,60,0.1);
 }
-/* КВАДРАТНАЯ КНОПКА ОЧИСТКИ — АНАЛОГИЧНА delete-btn в строках */
 .clear-search-btn {
     width: 48px;
     height: 48px;
@@ -389,14 +407,6 @@ body {
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
-    transition: background 0.2s, transform 0.05s;
-}
-.clear-search-btn:hover {
-    background: #b01030;
-    transform: scale(0.97);
-}
-.clear-search-btn:active {
-    transform: scale(0.95);
 }
 .loading-spinner {
     display: inline-block;
@@ -417,12 +427,12 @@ body {
     transform: translateX(-50%);
     background: var(--dark);
     color: white;
-    padding: 16px 32px;
-    font-size: 15px;
+    padding: 14px 28px;
+    font-size: 14px;
     font-weight: 500;
     z-index: 1000;
     animation: fadeUp 0.25s ease;
-    border-radius: 6px;
+    border-radius: 8px;
     text-align: center;
     min-width: 260px;
     max-width: 90vw;
@@ -437,15 +447,67 @@ body {
 .hidden-file-input {
     display: none;
 }
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal-window {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+.modal-window h3 {
+    margin-bottom: 16px;
+    color: var(--dark);
+}
+.modal-window input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+.modal-window input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+.modal-buttons button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+.modal-buttons button:first-child {
+    background: #e2e8f0;
+    color: var(--dark);
+}
+.modal-buttons button:last-child {
+    background: var(--accent);
+    color: white;
+}
 @media (max-width: 600px) {
     body { padding: 15px; }
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
     .form-card { padding: 16px; }
-    .clear-search-btn {
-        width: 48px;
-        height: 48px;
-    }
 }
 </style>
 </head>
@@ -476,12 +538,9 @@ body {
                 <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные (В пути/Активно)</option><option value="in_transit">В пути</option><option value="delivered">Доставленные</option></select></div>
                 <div class="filter-group"><select id="clubFilter"><option value="all">Все клубы</option><option value="BLOCKBUSTER">BLOCKBUSTER</option><option value="SKYMALL">SKYMALL</option><option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option></select></div>
             </div>
-            <!-- НОВЫЙ БЛОК ПОИСКА С КВАДРАТНОЙ КНОПКОЙ ОЧИСТКИ, ПОЛНОСТЬЮ СООТВЕТСТВУЕТ СТИЛЮ delete-btn (как в полях номера и количества) -->
             <div class="search-wrapper">
                 <input type="text" id="searchInput" class="search-box" placeholder="Поиск по номеру детали или клубу">
-                <button id="clearSearchBtn" class="clear-search-btn" title="Очистить поле поиска">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button id="clearSearchBtn" class="clear-search-btn" title="Очистить поле поиска"><i class="fa-solid fa-xmark"></i></button>
             </div>
         </div>
         
@@ -489,13 +548,14 @@ body {
     </div>
 </div>
 
-<!-- Скрытый input для выбора файла -->
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuhZ3nxW837cKAZSuG8lr8TYnFnj95hYy8y8kh94jJ0kORSIf_JjT_qb2r4HHqtmc0-Q/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgCIf5spQy8PcOJraT7neutXXk-91nWGwSz5gxGWVDBxHwZ_JS4EeQ9AJ_ZuWuvVwI7g/exec';
 const CLOUDINARY_CLOUD_NAME = 'dplmdnxvk';
 const CLOUDINARY_UPLOAD_PRESET = 'ADD_SKYMALL';
+const MANUALS_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
+const MANUALS_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 
 let allOrders = [];
 let isLoading = false;
@@ -506,20 +566,197 @@ let currentPhotoButton = null;
 
 let itemCounter = 0;
 let currentItems = [];
-
-// Кэш для URL фото
 let photoUrlCache = {};
+let manualsMap = new Map(); // ключ: номер_из_магазина, значение: номер_из_мануала
 
-// Маппинг клубов для отображения
+function normalizePartNumber(partNumber) {
+    if (!partNumber) return '';
+    return partNumber.toString().trim().toUpperCase().replace(/[\s-]/g, '');
+}
+
 const clubDisplayMap = {
     'BLOCKBUSTER': 'BLOCKBUSTER',
     'SKYMALL': 'SKYMALL',
     'LUCKY STRIKE KH': 'LUCKY STRIKE KH'
 };
 
-// Функция для получения отображаемого названия клуба
 function getClubDisplayName(club) {
     return clubDisplayMap[club] || club;
+}
+
+// ========== ЗАГРУЗКА ДАННЫХ ИЗ MANUALS ==========
+// Колонка A = номер из магазина
+// Колонка B = номер из мануала (если есть)
+// Остальные колонки (C, D, E...) сдвинуты
+async function loadManualsMap() {
+    try {
+        console.log('Загрузка данных из MANUALS листа...');
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${MANUALS_SPREADSHEET_ID}/values/MANUALS!A:Z?key=${MANUALS_API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.values || data.values.length === 0) {
+            console.warn('MANUALS лист пуст или не найден');
+            return;
+        }
+        
+        const newMap = new Map();
+        
+        // Пропускаем первую строку (заголовки)
+        for (let i = 1; i < data.values.length; i++) {
+            const row = data.values[i];
+            if (!row || row.length === 0) continue;
+            
+            // Колонка A (индекс 0) - номер из магазина
+            const storeNumber = row[0]?.toString().trim();
+            
+            // Колонка B (индекс 1) - номер из мануала (если есть)
+            const manualNumber = row[1]?.toString().trim();
+            
+            if (storeNumber && storeNumber !== '') {
+                const normalizedStore = normalizePartNumber(storeNumber);
+                if (manualNumber && manualNumber !== '') {
+                    newMap.set(normalizedStore, manualNumber);
+                    console.log(`Добавлено соответствие: магазин "${storeNumber}" -> мануал "${manualNumber}"`);
+                } else {
+                    newMap.set(normalizedStore, null);
+                    console.log(`Добавлен номер из магазина без мануала: "${storeNumber}"`);
+                }
+            }
+        }
+        
+        manualsMap = newMap;
+        console.log(`✅ Загружено ${manualsMap.size} записей из MANUALS`);
+        
+        refreshWarningIconsOnCards();
+    } catch (error) {
+        console.error('Ошибка загрузки MANUALS:', error);
+    }
+}
+
+function getManualNumber(storeNumber) {
+    if (!storeNumber || storeNumber === '—') return null;
+    const normalized = normalizePartNumber(storeNumber);
+    return manualsMap.get(normalized) || null;
+}
+
+function isPartInManuals(storeNumber) {
+    if (!storeNumber || storeNumber === '—') return true;
+    const normalized = normalizePartNumber(storeNumber);
+    return manualsMap.has(normalized) && manualsMap.get(normalized) !== null;
+}
+
+// Открытие окна для ввода номера из мануала
+function showManualNumberInput(storeNumber, cardElement, partSpan) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-window">
+            <h3><i class="fa-solid fa-book-open"></i> Номер из MANUALS</h3>
+            <p style="margin-bottom: 12px; font-size: 13px; color: #666;">Номер из магазина: <strong>${escapeHtml(storeNumber)}</strong></p>
+            <input type="text" id="manualNumberInput" placeholder="Введите номер детали из MANUALS" autocomplete="off">
+            <div class="modal-buttons">
+                <button onclick="this.closest('.modal-overlay').remove()">Отмена</button>
+                <button id="saveManualNumberBtn">Сохранить</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const input = modal.querySelector('#manualNumberInput');
+    input.focus();
+    
+    const saveBtn = modal.querySelector('#saveManualNumberBtn');
+    saveBtn.onclick = async () => {
+        const manualNumber = input.value.trim();
+        if (manualNumber === '') {
+            showToast('Введите номер детали', true);
+            return;
+        }
+        
+        modal.remove();
+        showToast('Сохранение...');
+        
+        // Сохраняем в Google Sheets через Apps Script
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fn: 'saveManualNumber',
+                    data: { storeNumber: storeNumber, manualNumber: manualNumber }
+                })
+            });
+            
+            // Обновляем локальный кэш
+            const normalized = normalizePartNumber(storeNumber);
+            manualsMap.set(normalized, manualNumber);
+            
+            // Обновляем значок на карточке
+            const warningIcon = partSpan.querySelector('.warning-icon');
+            if (warningIcon) warningIcon.remove();
+            
+            showToast(`✅ Сохранено: ${manualNumber}`);
+        } catch (err) {
+            console.error('Ошибка сохранения:', err);
+            showToast('Ошибка сохранения', true);
+        }
+    };
+}
+
+async function copyPartNumberToClipboard(partNumber, event) {
+    if (!partNumber || partNumber === '—') {
+        showToast('❌ Нет номера для копирования', true);
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(partNumber);
+        showToast(`✅ Скопировано: ${partNumber}`, false);
+        if (event && event.currentTarget) {
+            const icon = event.currentTarget.querySelector('i:not(.warning-icon)');
+            if (icon) {
+                icon.style.color = '#10b981';
+                icon.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    icon.style.color = '';
+                    icon.style.transform = '';
+                }, 200);
+            }
+        }
+    } catch (err) {
+        const textarea = document.createElement('textarea');
+        textarea.value = partNumber;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(`📋 Скопировано: ${partNumber}`, false);
+    }
+}
+
+function refreshWarningIconsOnCards() {
+    const allPartSpans = document.querySelectorAll('#ordersList .copy-part-number');
+    allPartSpans.forEach(span => {
+        const storeNumber = span.getAttribute('data-part-number');
+        if (storeNumber) {
+            const hasManual = isPartInManuals(storeNumber);
+            const existingWarning = span.querySelector('.warning-icon');
+            
+            if (!hasManual && !existingWarning) {
+                const warningIcon = document.createElement('i');
+                warningIcon.className = 'fa-solid fa-circle-exclamation warning-icon';
+                warningIcon.title = 'Номер отсутствует в MANUALS. Нажмите, чтобы добавить';
+                warningIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    showManualNumberInput(storeNumber, span.closest('.card'), span);
+                };
+                span.appendChild(warningIcon);
+            } else if (hasManual && existingWarning) {
+                existingWarning.remove();
+            }
+        }
+    });
 }
 
 function renderItems() {
@@ -616,9 +853,9 @@ function validateItems() {
 function showToast(msg, isError = false) {
     const toast = document.createElement('div');
     toast.className = 'toast' + (isError ? ' error' : '');
-    toast.innerHTML = msg;
+    toast.innerHTML = isError ? `<i class="fas fa-circle-exclamation"></i> ${msg}` : `<i class="fas fa-copy"></i> ${msg}`;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 2800);
 }
 
 function formatDateTime(date) {
@@ -673,11 +910,8 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders = Array.isArray(orders) ? orders : [];
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
-        
         photoUrlCache = {};
-        
         applyFiltersAndRenderFast();
-        
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
             setTimeout(() => {
@@ -685,9 +919,8 @@ async function loadOrders(showLoading = true, highlightRow = null) {
                 if (card) { card.classList.add('new-order'); setTimeout(() => card.classList.remove('new-order'), 1000); card.scrollIntoView({ behavior:'smooth', block:'center' }); }
             }, 100);
         }
-        
         setTimeout(() => loadAllPhotosInBackground(), 100);
-        
+        setTimeout(() => refreshWarningIconsOnCards(), 300);
     } catch(err) {
         console.error(err);
         if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> ${err.message}<br><br><button onclick="manualRefresh()" style="background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;">↻ Повторить</button></div>`;
@@ -704,12 +937,9 @@ function applyFiltersAndRenderFast() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     let filtered = [...allOrders];
     
-    // Обновленная логика фильтрации с учетом статуса "В пути"
     if (statusFilter === 'active') {
-        // Активные заказы: статус "Активно" или "В пути"
         filtered = filtered.filter(o => o.status !== 'Доставлено');
     } else if (statusFilter === 'in_transit') {
-        // Только заказы в пути
         filtered = filtered.filter(o => o.status === 'В пути');
     } else if (statusFilter === 'delivered') {
         filtered = filtered.filter(o => o.status === 'Доставлено');
@@ -740,16 +970,38 @@ function renderOrdersFast(orders) {
         
         const table = document.createElement('table');
         table.className = 'order-table';
+        
+        const storeNumber = order.partNumber || '';
+        const manualNumber = getManualNumber(storeNumber);
+        const hasManual = manualNumber !== null;
+        
+        let partNumberHtml = '';
+        if (storeNumber && storeNumber !== '—') {
+            let displayNumber = storeNumber;
+            if (manualNumber) {
+                displayNumber = `${storeNumber} → ${manualNumber}`;
+            }
+            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(storeNumber)}" onclick="copyPartNumberToClipboard('${escapeHtml(storeNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManual ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
+        } else {
+            partNumberHtml = escapeHtml(storeNumber) || '—';
+        }
+        
         const fields = [
-            { label:'Номер детали', value: order.partNumber || '—' },
+            { label:'Номер детали', value: partNumberHtml },
             { label:'Количество', value: `${order.quantity} шт.` },
             { label:'Боулинг-клуб', value: getClubDisplayName(order.club) || '—' },
             { label:'Дата и время', value: dateStr }
         ];
+        
         fields.forEach(f => {
             const tr = document.createElement('tr');
             const td1 = document.createElement('td'); td1.textContent = f.label;
-            const td2 = document.createElement('td'); td2.textContent = f.value;
+            const td2 = document.createElement('td');
+            if (f.label === 'Номер детали') {
+                td2.innerHTML = f.value;
+            } else {
+                td2.textContent = f.value;
+            }
             tr.appendChild(td1); tr.appendChild(td2);
             table.appendChild(tr);
         });
@@ -760,14 +1012,12 @@ function renderOrdersFast(orders) {
         const curStatus = order.status || 'Активно';
         const select = document.createElement('select');
         
-        // Определяем класс для стилизации в зависимости от статуса
         let selectClass = 'status-select';
         if (curStatus === 'Активно') selectClass += ' status-pending';
         else if (curStatus === 'В пути') selectClass += ' status-in-transit';
         else if (curStatus === 'Доставлено') selectClass += ' status-delivered';
         select.className = selectClass;
         
-        // Добавляем option для статуса "В пути"
         select.innerHTML = `
             <option value="Активно" ${curStatus === 'Активно' ? 'selected' : ''}>Активно</option>
             <option value="В пути" ${curStatus === 'В пути' ? 'selected' : ''}>В пути</option>
@@ -798,6 +1048,30 @@ function renderOrdersFast(orders) {
         card.appendChild(actionDiv);
         container.appendChild(card);
     }
+    
+    // Добавляем обработчики для восклицательных знаков после рендеринга
+    setTimeout(() => {
+        document.querySelectorAll('#ordersList .warning-icon').forEach(icon => {
+            const span = icon.closest('.copy-part-number');
+            const storeNumber = span?.getAttribute('data-part-number');
+            if (storeNumber) {
+                icon.onclick = (e) => {
+                    e.stopPropagation();
+                    showManualNumberInput(storeNumber, span.closest('.card'), span);
+                };
+            }
+        });
+    }, 50);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 async function loadAllPhotosInBackground() {
@@ -806,15 +1080,11 @@ async function loadAllPhotosInBackground() {
         const partNumber = card.getAttribute('data-partnumber');
         const club = card.getAttribute('data-club');
         if (!partNumber || !club) continue;
-        
         const actionBar = card.querySelector('.action-bar');
         if (!actionBar) continue;
-        
         const oldButton = actionBar.querySelector('.photo-card-btn');
         if (!oldButton) continue;
-        
         let photoUrl = photoUrlCache[`${club}_${partNumber}`];
-        
         if (photoUrl === undefined) {
             oldButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
             try {
@@ -825,14 +1095,8 @@ async function loadAllPhotosInBackground() {
                 } else {
                     photoUrlCache[`${club}_${partNumber}`] = null;
                 }
-            } catch(e) {
-                console.warn(`Ошибка проверки фото для ${partNumber} (${club})`);
-                photoUrlCache[`${club}_${partNumber}`] = null;
-            }
-        } else {
-            photoUrl = photoUrlCache[`${club}_${partNumber}`];
-        }
-        
+            } catch(e) { photoUrlCache[`${club}_${partNumber}`] = null; }
+        } else { photoUrl = photoUrlCache[`${club}_${partNumber}`]; }
         let finalElement;
         if (photoUrl) {
             const link = document.createElement('a');
@@ -840,12 +1104,6 @@ async function loadAllPhotosInBackground() {
             link.target = '_blank';
             link.className = 'photo-card-btn has-photo';
             link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
-            link.style.textDecoration = 'none';
-            link.style.display = 'flex';
-            link.style.alignItems = 'center';
-            link.style.gap = '8px';
-            link.style.width = '100%';
-            link.style.justifyContent = 'center';
             finalElement = link;
         } else {
             const button = document.createElement('button');
@@ -854,11 +1112,7 @@ async function loadAllPhotosInBackground() {
             button.onclick = () => addPhotoDirect(partNumber, club, card, button);
             finalElement = button;
         }
-        
-        if (oldButton && oldButton.parentNode === actionBar) {
-            actionBar.replaceChild(finalElement, oldButton);
-        }
-        
+        if (oldButton && oldButton.parentNode === actionBar) actionBar.replaceChild(finalElement, oldButton);
         await new Promise(r => setTimeout(r, 150));
     }
 }
@@ -882,7 +1136,7 @@ async function saveOrder() {
             if (res?.error) throw new Error(res.error);
             if (res?.row) lastRow = res.row;
         }
-        showToast(`✅ Сохранено ${itemsToSave.length} позиций для ${getClubDisplayName(club)}<br>${formatDateTime(now)}`);
+        showToast(`✅ Сохранено ${itemsToSave.length} позиций`);
         resetItemsToDefault();
         document.getElementById('clubSelect').value = '';
         await loadOrders(true, lastRow);
@@ -896,12 +1150,6 @@ async function updateStatus(row, newStatus, selectEl) {
     try {
         const res = await callScriptAsync('updateStatus', { row, status: newStatus });
         if (res?.error) throw new Error(res.error);
-        if (res.stockUpdate?.success && res.stockUpdate.details) {
-            const d = res.stockUpdate.details;
-            const sheetName = d.sheet;
-            if (d.existed) showToast(`📦 ${sheetName}: ${d.partNumber} ${d.oldQty} → ${d.newQty} шт.`);
-            else showToast(`📦 ${sheetName}: новая деталь ${d.partNumber}, остаток ${d.newQty} шт.`);
-        }
         const idx = allOrders.findIndex(o => o.row == row);
         if (idx !== -1) allOrders[idx].status = newStatus;
         applyFiltersAndRenderFast();
@@ -923,19 +1171,12 @@ async function deleteOrder(row, cardEl) {
 }
 
 function addPhotoDirect(partNumber, club, cardElement, buttonElement) {
-    if (!partNumber || partNumber.trim() === '') {
-        showToast('Номер детали не указан', true);
-        return;
-    }
-    if (!club) {
-        showToast('Клуб не указан', true);
-        return;
-    }
+    if (!partNumber || partNumber.trim() === '') { showToast('Номер детали не указан', true); return; }
+    if (!club) { showToast('Клуб не указан', true); return; }
     currentPartNumberForPhoto = partNumber;
     currentClubForPhoto = club;
     currentCardElement = cardElement;
     currentPhotoButton = buttonElement;
-    
     const fileInput = document.getElementById('fileInput');
     fileInput.removeAttribute('capture');
     fileInput.value = '';
@@ -952,11 +1193,7 @@ async function uploadPhoto(file) {
         const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, { method: 'POST', body: fd });
         const data = await response.json();
         if (data.secure_url) {
-            const res = await callScriptAsync('uploadPartPhoto', { 
-                partNumber: currentPartNumberForPhoto.trim(), 
-                imageUrl: data.secure_url,
-                club: currentClubForPhoto 
-            });
+            const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url, club: currentClubForPhoto });
             if (res?.success) {
                 showToast('✅ Фото сохранено');
                 const cacheKey = `${currentClubForPhoto}_${currentPartNumberForPhoto}`;
@@ -967,12 +1204,6 @@ async function uploadPhoto(file) {
                     link.target = '_blank';
                     link.className = 'photo-card-btn has-photo';
                     link.innerHTML = '<i class="fa-solid fa-image"></i> Открыть фото';
-                    link.style.textDecoration = 'none';
-                    link.style.display = 'flex';
-                    link.style.alignItems = 'center';
-                    link.style.gap = '8px';
-                    link.style.width = '100%';
-                    link.style.justifyContent = 'center';
                     currentPhotoButton.parentNode.replaceChild(link, currentPhotoButton);
                 }
             } else showToast('Ошибка сохранения ссылки', true);
@@ -981,29 +1212,18 @@ async function uploadPhoto(file) {
 }
 
 function handleFileSelect(e) {
-    if (e.target.files && e.target.files[0]) {
-        uploadPhoto(e.target.files[0]);
-    }
+    if (e.target.files && e.target.files[0]) uploadPhoto(e.target.files[0]);
     document.getElementById('fileInput').value = '';
 }
 
-function applyFilters() {
-    applyFiltersAndRenderFast();
-    setTimeout(() => loadAllPhotosInBackground(), 100);
-}
-
-// НОВАЯ ФУНКЦИЯ ОЧИСТКИ ПОЛЯ ПОИСКА (квадратная кнопка)
+function applyFilters() { applyFiltersAndRenderFast(); setTimeout(() => loadAllPhotosInBackground(), 100); }
 function clearSearchField() {
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = '';
-        // Триггерим событие input/keyup чтобы применить фильтры
-        applyFilters();
-        // Фокус на поле для удобства
-        searchInput.focus();
-        showToast('Поле поиска очищено');
-    }
+    if (searchInput) { searchInput.value = ''; applyFilters(); searchInput.focus(); showToast('Поле поиска очищено'); }
 }
+
+window.copyPartNumberToClipboard = copyPartNumberToClipboard;
+window.showManualNumberInput = showManualNumberInput;
 
 window.addEventListener('load', async () => {
     resetItemsToDefault();
@@ -1012,17 +1232,12 @@ window.addEventListener('load', async () => {
     document.getElementById('statusFilter').addEventListener('change', applyFilters);
     document.getElementById('clubFilter').addEventListener('change', applyFilters);
     document.getElementById('searchInput').addEventListener('keyup', applyFilters);
-    
-    // Привязка кнопки очистки поиска
     const clearBtn = document.getElementById('clearSearchBtn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', clearSearchField);
-    }
-    
+    if (clearBtn) clearBtn.addEventListener('click', clearSearchField);
     const fileInput = document.getElementById('fileInput');
     fileInput.onchange = handleFileSelect;
     
-    await loadOrders(true);
+    await Promise.all([loadManualsMap(), loadOrders(true)]);
 });
 
 window.saveOrder = saveOrder;
