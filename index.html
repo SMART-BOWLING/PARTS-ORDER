@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Проверка наличия в MANUALS</title>
+<title>PARTS ORDER — Заказ запчастей</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 /* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
@@ -567,7 +567,6 @@ let currentPhotoButton = null;
 let itemCounter = 0;
 let currentItems = [];
 let photoUrlCache = {};
-let manualsMap = new Map(); // ключ: номер_из_магазина, значение: номер_из_мануала
 
 function normalizePartNumber(partNumber) {
     if (!partNumber) return '';
@@ -584,70 +583,61 @@ function getClubDisplayName(club) {
     return clubDisplayMap[club] || club;
 }
 
-// ========== ЗАГРУЗКА ДАННЫХ ИЗ MANUALS ==========
-// Колонка A = номер из магазина
-// Колонка B = номер из мануала (если есть)
-// Остальные колонки (C, D, E...) сдвинуты
-async function loadManualsMap() {
+// ========== ПРОВЕРКА НАЛИЧИЯ НОМЕРА В MANUALS (ТОЛЬКО ДЛЯ ЧТЕНИЯ) ==========
+async function checkManualExists(storeNumber) {
     try {
-        console.log('Загрузка данных из MANUALS листа...');
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${MANUALS_SPREADSHEET_ID}/values/MANUALS!A:Z?key=${MANUALS_API_KEY}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (!data.values || data.values.length === 0) {
-            console.warn('MANUALS лист пуст или не найден');
-            return;
-        }
-        
-        const newMap = new Map();
-        
-        // Пропускаем первую строку (заголовки)
-        for (let i = 1; i < data.values.length; i++) {
-            const row = data.values[i];
-            if (!row || row.length === 0) continue;
-            
-            // Колонка A (индекс 0) - номер из магазина
-            const storeNumber = row[0]?.toString().trim();
-            
-            // Колонка B (индекс 1) - номер из мануала (если есть)
-            const manualNumber = row[1]?.toString().trim();
-            
-            if (storeNumber && storeNumber !== '') {
-                const normalizedStore = normalizePartNumber(storeNumber);
-                if (manualNumber && manualNumber !== '') {
-                    newMap.set(normalizedStore, manualNumber);
-                    console.log(`Добавлено соответствие: магазин "${storeNumber}" -> мануал "${manualNumber}"`);
-                } else {
-                    newMap.set(normalizedStore, null);
-                    console.log(`Добавлен номер из магазина без мануала: "${storeNumber}"`);
+        const response = await fetch(`${SCRIPT_URL}?fn=checkManualExists&data=${encodeURIComponent(JSON.stringify({ storeNumber: storeNumber }))}&callback=callback_${Date.now()}`);
+        // Используем JSONP подход
+        return new Promise((resolve) => {
+            const callbackName = 'cb_' + Date.now();
+            window[callbackName] = function(res) {
+                delete window[callbackName];
+                resolve(res.result || { exists: false, manualNumber: null });
+            };
+            const script = document.createElement('script');
+            script.src = `${SCRIPT_URL}?fn=checkManualExists&data=${encodeURIComponent(JSON.stringify({ storeNumber: storeNumber }))}&callback=${callbackName}`;
+            document.body.appendChild(script);
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    resolve({ exists: false, manualNumber: null });
                 }
-            }
-        }
-        
-        manualsMap = newMap;
-        console.log(`✅ Загружено ${manualsMap.size} записей из MANUALS`);
-        
-        refreshWarningIconsOnCards();
+            }, 5000);
+        });
     } catch (error) {
-        console.error('Ошибка загрузки MANUALS:', error);
+        console.error('Ошибка проверки MANUALS:', error);
+        return { exists: false, manualNumber: null };
     }
 }
 
-function getManualNumber(storeNumber) {
-    if (!storeNumber || storeNumber === '—') return null;
-    const normalized = normalizePartNumber(storeNumber);
-    return manualsMap.get(normalized) || null;
+// ========== СОХРАНЕНИЕ НОМЕРА ИЗ МАНУАЛА В PARTS ORDER ==========
+async function saveManualNumberToOrder(row, manualNumber) {
+    try {
+        const response = await fetch(`${SCRIPT_URL}?fn=saveManualNumber&data=${encodeURIComponent(JSON.stringify({ row: row, manualNumber: manualNumber }))}&callback=callback_${Date.now()}`);
+        return new Promise((resolve) => {
+            const callbackName = 'cb_' + Date.now();
+            window[callbackName] = function(res) {
+                delete window[callbackName];
+                resolve(res.result || { success: false });
+            };
+            const script = document.createElement('script');
+            script.src = `${SCRIPT_URL}?fn=saveManualNumber&data=${encodeURIComponent(JSON.stringify({ row: row, manualNumber: manualNumber }))}&callback=${callbackName}`;
+            document.body.appendChild(script);
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    resolve({ success: false, error: 'Timeout' });
+                }
+            }, 5000);
+        });
+    } catch (error) {
+        console.error('Ошибка сохранения:', error);
+        return { success: false, error: error.message };
+    }
 }
 
-function isPartInManuals(storeNumber) {
-    if (!storeNumber || storeNumber === '—') return true;
-    const normalized = normalizePartNumber(storeNumber);
-    return manualsMap.has(normalized) && manualsMap.get(normalized) !== null;
-}
-
-// Открытие окна для ввода номера из мануала
-function showManualNumberInput(storeNumber, cardElement, partSpan) {
+// ========== ОТКРЫТИЕ ОКНА ДЛЯ ВВОДА НОМЕРА ==========
+function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -677,30 +667,13 @@ function showManualNumberInput(storeNumber, cardElement, partSpan) {
         modal.remove();
         showToast('Сохранение...');
         
-        // Сохраняем в Google Sheets через Apps Script
-        try {
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fn: 'saveManualNumber',
-                    data: { storeNumber: storeNumber, manualNumber: manualNumber }
-                })
-            });
-            
-            // Обновляем локальный кэш
-            const normalized = normalizePartNumber(storeNumber);
-            manualsMap.set(normalized, manualNumber);
-            
-            // Обновляем значок на карточке
-            const warningIcon = partSpan.querySelector('.warning-icon');
-            if (warningIcon) warningIcon.remove();
-            
+        const result = await saveManualNumberToOrder(row, manualNumber);
+        if (result.success) {
             showToast(`✅ Сохранено: ${manualNumber}`);
-        } catch (err) {
-            console.error('Ошибка сохранения:', err);
-            showToast('Ошибка сохранения', true);
+            // Обновляем отображение
+            await loadOrders(true);
+        } else {
+            showToast(`Ошибка: ${result.error || 'Неизвестная ошибка'}`, true);
         }
     };
 }
@@ -733,30 +706,6 @@ async function copyPartNumberToClipboard(partNumber, event) {
         document.body.removeChild(textarea);
         showToast(`📋 Скопировано: ${partNumber}`, false);
     }
-}
-
-function refreshWarningIconsOnCards() {
-    const allPartSpans = document.querySelectorAll('#ordersList .copy-part-number');
-    allPartSpans.forEach(span => {
-        const storeNumber = span.getAttribute('data-part-number');
-        if (storeNumber) {
-            const hasManual = isPartInManuals(storeNumber);
-            const existingWarning = span.querySelector('.warning-icon');
-            
-            if (!hasManual && !existingWarning) {
-                const warningIcon = document.createElement('i');
-                warningIcon.className = 'fa-solid fa-circle-exclamation warning-icon';
-                warningIcon.title = 'Номер отсутствует в MANUALS. Нажмите, чтобы добавить';
-                warningIcon.onclick = (e) => {
-                    e.stopPropagation();
-                    showManualNumberInput(storeNumber, span.closest('.card'), span);
-                };
-                span.appendChild(warningIcon);
-            } else if (hasManual && existingWarning) {
-                existingWarning.remove();
-            }
-        }
-    });
 }
 
 function renderItems() {
@@ -920,7 +869,6 @@ async function loadOrders(showLoading = true, highlightRow = null) {
             }, 100);
         }
         setTimeout(() => loadAllPhotosInBackground(), 100);
-        setTimeout(() => refreshWarningIconsOnCards(), 300);
     } catch(err) {
         console.error(err);
         if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> ${err.message}<br><br><button onclick="manualRefresh()" style="background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;">↻ Повторить</button></div>`;
@@ -946,7 +894,7 @@ function applyFiltersAndRenderFast() {
     }
     
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
-    if (search) filtered = filtered.filter(o => o.partNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(o => o.storeNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
     renderOrdersFast(filtered);
 }
@@ -962,7 +910,7 @@ function renderOrdersFast(orders) {
         const card = document.createElement('div');
         card.className = 'card';
         card.setAttribute('data-row', order.row);
-        card.setAttribute('data-partnumber', order.partNumber);
+        card.setAttribute('data-storenumber', order.storeNumber);
         card.setAttribute('data-club', order.club);
         
         let dateStr = '—';
@@ -971,17 +919,20 @@ function renderOrdersFast(orders) {
         const table = document.createElement('table');
         table.className = 'order-table';
         
-        const storeNumber = order.partNumber || '';
-        const manualNumber = getManualNumber(storeNumber);
-        const hasManual = manualNumber !== null;
+        const storeNumber = order.storeNumber || '';
+        const manualNumber = order.manualNumber || '';
+        
+        // Показываем номер детали
+        let displayNumber = storeNumber;
+        if (manualNumber) {
+            displayNumber = `${storeNumber} → ${manualNumber}`;
+        }
+        
+        const hasManualNumber = manualNumber && manualNumber !== '';
         
         let partNumberHtml = '';
         if (storeNumber && storeNumber !== '—') {
-            let displayNumber = storeNumber;
-            if (manualNumber) {
-                displayNumber = `${storeNumber} → ${manualNumber}`;
-            }
-            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(storeNumber)}" onclick="copyPartNumberToClipboard('${escapeHtml(storeNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManual ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
+            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(storeNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(storeNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManualNumber ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
         } else {
             partNumberHtml = escapeHtml(storeNumber) || '—';
         }
@@ -1049,15 +1000,16 @@ function renderOrdersFast(orders) {
         container.appendChild(card);
     }
     
-    // Добавляем обработчики для восклицательных знаков после рендеринга
+    // Добавляем обработчики для восклицательных знаков
     setTimeout(() => {
         document.querySelectorAll('#ordersList .warning-icon').forEach(icon => {
             const span = icon.closest('.copy-part-number');
             const storeNumber = span?.getAttribute('data-part-number');
-            if (storeNumber) {
+            const row = span?.getAttribute('data-row');
+            if (storeNumber && row) {
                 icon.onclick = (e) => {
                     e.stopPropagation();
-                    showManualNumberInput(storeNumber, span.closest('.card'), span);
+                    showManualNumberInput(storeNumber, parseInt(row), span.closest('.card'), span);
                 };
             }
         });
@@ -1077,26 +1029,26 @@ function escapeHtml(str) {
 async function loadAllPhotosInBackground() {
     const cards = document.querySelectorAll('#ordersList .card');
     for (const card of cards) {
-        const partNumber = card.getAttribute('data-partnumber');
+        const storeNumber = card.getAttribute('data-storenumber');
         const club = card.getAttribute('data-club');
-        if (!partNumber || !club) continue;
+        if (!storeNumber || !club) continue;
         const actionBar = card.querySelector('.action-bar');
         if (!actionBar) continue;
         const oldButton = actionBar.querySelector('.photo-card-btn');
         if (!oldButton) continue;
-        let photoUrl = photoUrlCache[`${club}_${partNumber}`];
+        let photoUrl = photoUrlCache[`${club}_${storeNumber}`];
         if (photoUrl === undefined) {
             oldButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
             try {
-                const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber, club: club });
+                const res = await callScriptAsync('getPartPhoto', { partNumber: storeNumber, club: club });
                 if (res?.success && res.hasPhoto && res.photoUrl) {
                     photoUrl = res.photoUrl;
-                    photoUrlCache[`${club}_${partNumber}`] = photoUrl;
+                    photoUrlCache[`${club}_${storeNumber}`] = photoUrl;
                 } else {
-                    photoUrlCache[`${club}_${partNumber}`] = null;
+                    photoUrlCache[`${club}_${storeNumber}`] = null;
                 }
-            } catch(e) { photoUrlCache[`${club}_${partNumber}`] = null; }
-        } else { photoUrl = photoUrlCache[`${club}_${partNumber}`]; }
+            } catch(e) { photoUrlCache[`${club}_${storeNumber}`] = null; }
+        } else { photoUrl = photoUrlCache[`${club}_${storeNumber}`]; }
         let finalElement;
         if (photoUrl) {
             const link = document.createElement('a');
@@ -1109,7 +1061,7 @@ async function loadAllPhotosInBackground() {
             const button = document.createElement('button');
             button.className = 'photo-card-btn';
             button.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            button.onclick = () => addPhotoDirect(partNumber, club, card, button);
+            button.onclick = () => addPhotoDirect(storeNumber, club, card, button);
             finalElement = button;
         }
         if (oldButton && oldButton.parentNode === actionBar) actionBar.replaceChild(finalElement, oldButton);
@@ -1132,7 +1084,17 @@ async function saveOrder() {
         const ts = now.toISOString();
         let lastRow = null;
         for (const it of itemsToSave) {
-            const res = await callScriptAsync('addOrder', { partNumber: it.partNumber.trim(), quantity: it.quantity, club, timestamp: ts });
+            // Проверяем есть ли номер в MANUALS
+            const checkResult = await checkManualExists(it.partNumber.trim());
+            const manualNumber = checkResult.exists ? checkResult.manualNumber : '';
+            
+            const res = await callScriptAsync('addOrder', { 
+                partNumber: it.partNumber.trim(), 
+                quantity: it.quantity, 
+                club, 
+                timestamp: ts,
+                manualNumber: manualNumber
+            });
             if (res?.error) throw new Error(res.error);
             if (res?.row) lastRow = res.row;
         }
@@ -1237,7 +1199,7 @@ window.addEventListener('load', async () => {
     const fileInput = document.getElementById('fileInput');
     fileInput.onchange = handleFileSelect;
     
-    await Promise.all([loadManualsMap(), loadOrders(true)]);
+    await loadOrders(true);
 });
 
 window.saveOrder = saveOrder;
