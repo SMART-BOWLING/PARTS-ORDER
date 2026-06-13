@@ -550,7 +550,7 @@ body {
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzamhaRrQKYzs6HHu-iKe7hTjOTiveDLONPtijcDGBn3O3dMAY3H85Z9XpSnLSxtvsp6g/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxU7bnEOsniMaZDrk40Rh9JmbBYXamVB-Yz3aOe9b1mBvUV9oelqugBaX86gv3Wr6r38g/exec';
 const CLOUDINARY_CLOUD_NAME = 'dplmdnxvk';
 const CLOUDINARY_UPLOAD_PRESET = 'ADD_SKYMALL';
 
@@ -890,6 +890,7 @@ function renderOrdersFast(orders) {
         card.className = 'card';
         card.setAttribute('data-row', order.row);
         card.setAttribute('data-storenumber', order.storeNumber);
+        card.setAttribute('data-manualnumber', order.manualNumber);
         card.setAttribute('data-club', order.club);
         
         let dateStr = '—';
@@ -901,23 +902,27 @@ function renderOrdersFast(orders) {
         const storeNumber = order.storeNumber || '';
         const manualNumber = order.manualNumber || '';
         
-        // Определяем какой номер показывать
+        // ЛОГИКА ОТОБРАЖЕНИЯ: если есть manualNumber - показываем его, иначе storeNumber
         let displayNumber = '';
-        if (storeNumber && manualNumber) {
-            displayNumber = `${storeNumber} → ${manualNumber}`;
-        } else if (storeNumber) {
-            displayNumber = storeNumber;
-        } else if (manualNumber) {
+        let copyNumber = '';
+        
+        if (manualNumber && manualNumber !== '') {
+            // Если есть номер из мануала - показываем его
             displayNumber = manualNumber;
+            copyNumber = manualNumber;
+        } else if (storeNumber && storeNumber !== '') {
+            // Если нет номера из мануала, но есть из магазина - показываем его + восклицательный знак
+            displayNumber = storeNumber;
+            copyNumber = storeNumber;
         } else {
             displayNumber = '—';
+            copyNumber = '';
         }
         
         const hasManualNumber = manualNumber && manualNumber !== '';
         
         let partNumberHtml = '';
         if (displayNumber !== '—') {
-            const copyNumber = storeNumber || manualNumber;
             partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(copyNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(copyNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManualNumber && storeNumber ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
         } else {
             partNumberHtml = '—';
@@ -1015,26 +1020,30 @@ function escapeHtml(str) {
 async function loadAllPhotosInBackground() {
     const cards = document.querySelectorAll('#ordersList .card');
     for (const card of cards) {
-        const storeNumber = card.getAttribute('data-storenumber');
+        // Сначала пробуем взять номер из manualNumber, если нет - из storeNumber
+        let partNumber = card.getAttribute('data-manualnumber');
+        if (!partNumber || partNumber === '') {
+            partNumber = card.getAttribute('data-storenumber');
+        }
         const club = card.getAttribute('data-club');
-        if (!storeNumber || !club) continue;
+        if (!partNumber || !club) continue;
         const actionBar = card.querySelector('.action-bar');
         if (!actionBar) continue;
         const oldButton = actionBar.querySelector('.photo-card-btn');
         if (!oldButton) continue;
-        let photoUrl = photoUrlCache[`${club}_${storeNumber}`];
+        let photoUrl = photoUrlCache[`${club}_${partNumber}`];
         if (photoUrl === undefined) {
             oldButton.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Проверка...';
             try {
-                const res = await callScriptAsync('getPartPhoto', { partNumber: storeNumber, club: club });
+                const res = await callScriptAsync('getPartPhoto', { partNumber: partNumber, club: club });
                 if (res?.success && res.hasPhoto && res.photoUrl) {
                     photoUrl = res.photoUrl;
-                    photoUrlCache[`${club}_${storeNumber}`] = photoUrl;
+                    photoUrlCache[`${club}_${partNumber}`] = photoUrl;
                 } else {
-                    photoUrlCache[`${club}_${storeNumber}`] = null;
+                    photoUrlCache[`${club}_${partNumber}`] = null;
                 }
-            } catch(e) { photoUrlCache[`${club}_${storeNumber}`] = null; }
-        } else { photoUrl = photoUrlCache[`${club}_${storeNumber}`]; }
+            } catch(e) { photoUrlCache[`${club}_${partNumber}`] = null; }
+        } else { photoUrl = photoUrlCache[`${club}_${partNumber}`]; }
         let finalElement;
         if (photoUrl) {
             const link = document.createElement('a');
@@ -1047,7 +1056,7 @@ async function loadAllPhotosInBackground() {
             const button = document.createElement('button');
             button.className = 'photo-card-btn';
             button.innerHTML = '<i class="fa-solid fa-camera"></i> Добавить фото';
-            button.onclick = () => addPhotoDirect(storeNumber, club, card, button);
+            button.onclick = () => addPhotoDirect(partNumber, club, card, button);
             finalElement = button;
         }
         if (oldButton && oldButton.parentNode === actionBar) actionBar.replaceChild(finalElement, oldButton);
@@ -1070,6 +1079,7 @@ async function saveOrder() {
         const ts = now.toISOString();
         let lastRow = null;
         for (const it of itemsToSave) {
+            // Проверяем есть ли номер в MANUALS
             const checkResult = await checkManualExists(it.partNumber.trim());
             const manualNumber = checkResult.exists ? checkResult.manualNumber : '';
             
