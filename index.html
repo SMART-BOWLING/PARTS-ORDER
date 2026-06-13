@@ -6,7 +6,6 @@
 <title>PARTS ORDER — Заказ запчастей</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
-/* ----- ОСНОВНЫЕ ПЕРЕМЕННЫЕ ----- */
 :root {
     --dark: #1f2937;
     --accent: #dc143c;
@@ -535,7 +534,7 @@ body {
         
         <div id="filterSearchBlock" class="filter-search-container">
             <div class="filter-section">
-                <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные (В пути/Активно)</option><option value="in_transit">В пути</option><option value="delivered">Доставленные</option></select></div>
+                <div class="filter-group"><select id="statusFilter"><option value="all">Все заказы</option><option value="active">Активные</option><option value="in_transit">В пути</option><option value="delivered">Доставленные</option></select></div>
                 <div class="filter-group"><select id="clubFilter"><option value="all">Все клубы</option><option value="BLOCKBUSTER">BLOCKBUSTER</option><option value="SKYMALL">SKYMALL</option><option value="LUCKY STRIKE KH">LUCKY STRIKE KH</option></select></div>
             </div>
             <div class="search-wrapper">
@@ -551,11 +550,9 @@ body {
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzuusxKG5ISpT8aoHUCmWiUZwlY6ctZyoVSGfBEQqpsApCCSlR9GqmYkVRR0GpitwZLRw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzamhaRrQKYzs6HHu-iKe7hTjOTiveDLONPtijcDGBn3O3dMAY3H85Z9XpSnLSxtvsp6g/exec';
 const CLOUDINARY_CLOUD_NAME = 'dplmdnxvk';
 const CLOUDINARY_UPLOAD_PRESET = 'ADD_SKYMALL';
-const MANUALS_SPREADSHEET_ID = '1v-R394u6sKzSdvmkh9qsbqhfkNZEi5lIXwo8BdT_lhQ';
-const MANUALS_API_KEY = 'AIzaSyAXL0Hsfxy-g-AgYhnivj4x9gCB2rrtF-0';
 
 let allOrders = [];
 let isLoading = false;
@@ -583,67 +580,52 @@ function getClubDisplayName(club) {
     return clubDisplayMap[club] || club;
 }
 
-// ========== ПРОВЕРКА НАЛИЧИЯ НОМЕРА В MANUALS (ТОЛЬКО ДЛЯ ЧТЕНИЯ) ==========
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С MANUALS ==========
 async function checkManualExists(storeNumber) {
-    try {
-        const response = await fetch(`${SCRIPT_URL}?fn=checkManualExists&data=${encodeURIComponent(JSON.stringify({ storeNumber: storeNumber }))}&callback=callback_${Date.now()}`);
-        // Используем JSONP подход
-        return new Promise((resolve) => {
-            const callbackName = 'cb_' + Date.now();
-            window[callbackName] = function(res) {
+    return new Promise((resolve) => {
+        const callbackName = 'cb_check_' + Date.now();
+        window[callbackName] = function(res) {
+            delete window[callbackName];
+            resolve(res.result || { exists: false, manualNumber: null });
+        };
+        const script = document.createElement('script');
+        script.src = `${SCRIPT_URL}?fn=checkManualExists&data=${encodeURIComponent(JSON.stringify({ storeNumber: storeNumber }))}&callback=${callbackName}`;
+        document.body.appendChild(script);
+        setTimeout(() => {
+            if (window[callbackName]) {
                 delete window[callbackName];
-                resolve(res.result || { exists: false, manualNumber: null });
-            };
-            const script = document.createElement('script');
-            script.src = `${SCRIPT_URL}?fn=checkManualExists&data=${encodeURIComponent(JSON.stringify({ storeNumber: storeNumber }))}&callback=${callbackName}`;
-            document.body.appendChild(script);
-            setTimeout(() => {
-                if (window[callbackName]) {
-                    delete window[callbackName];
-                    resolve({ exists: false, manualNumber: null });
-                }
-            }, 5000);
-        });
-    } catch (error) {
-        console.error('Ошибка проверки MANUALS:', error);
-        return { exists: false, manualNumber: null };
-    }
+                resolve({ exists: false, manualNumber: null });
+            }
+        }, 5000);
+    });
 }
 
-// ========== СОХРАНЕНИЕ НОМЕРА ИЗ МАНУАЛА В PARTS ORDER ==========
 async function saveManualNumberToOrder(row, manualNumber) {
-    try {
-        const response = await fetch(`${SCRIPT_URL}?fn=saveManualNumber&data=${encodeURIComponent(JSON.stringify({ row: row, manualNumber: manualNumber }))}&callback=callback_${Date.now()}`);
-        return new Promise((resolve) => {
-            const callbackName = 'cb_' + Date.now();
-            window[callbackName] = function(res) {
+    return new Promise((resolve) => {
+        const callbackName = 'cb_save_' + Date.now();
+        window[callbackName] = function(res) {
+            delete window[callbackName];
+            resolve(res.result || { success: false });
+        };
+        const script = document.createElement('script');
+        script.src = `${SCRIPT_URL}?fn=saveManualNumber&data=${encodeURIComponent(JSON.stringify({ row: row, manualNumber: manualNumber }))}&callback=${callbackName}`;
+        document.body.appendChild(script);
+        setTimeout(() => {
+            if (window[callbackName]) {
                 delete window[callbackName];
-                resolve(res.result || { success: false });
-            };
-            const script = document.createElement('script');
-            script.src = `${SCRIPT_URL}?fn=saveManualNumber&data=${encodeURIComponent(JSON.stringify({ row: row, manualNumber: manualNumber }))}&callback=${callbackName}`;
-            document.body.appendChild(script);
-            setTimeout(() => {
-                if (window[callbackName]) {
-                    delete window[callbackName];
-                    resolve({ success: false, error: 'Timeout' });
-                }
-            }, 5000);
-        });
-    } catch (error) {
-        console.error('Ошибка сохранения:', error);
-        return { success: false, error: error.message };
-    }
+                resolve({ success: false, error: 'Timeout' });
+            }
+        }, 5000);
+    });
 }
 
-// ========== ОТКРЫТИЕ ОКНА ДЛЯ ВВОДА НОМЕРА ==========
 function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
         <div class="modal-window">
             <h3><i class="fa-solid fa-book-open"></i> Номер из MANUALS</h3>
-            <p style="margin-bottom: 12px; font-size: 13px; color: #666;">Номер из магазина: <strong>${escapeHtml(storeNumber)}</strong></p>
+            <p style="margin-bottom: 12px; font-size: 13px; color: #666;">Номер: <strong>${escapeHtml(storeNumber)}</strong></p>
             <input type="text" id="manualNumberInput" placeholder="Введите номер детали из MANUALS" autocomplete="off">
             <div class="modal-buttons">
                 <button onclick="this.closest('.modal-overlay').remove()">Отмена</button>
@@ -663,14 +645,11 @@ function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
             showToast('Введите номер детали', true);
             return;
         }
-        
         modal.remove();
         showToast('Сохранение...');
-        
         const result = await saveManualNumberToOrder(row, manualNumber);
         if (result.success) {
             showToast(`✅ Сохранено: ${manualNumber}`);
-            // Обновляем отображение
             await loadOrders(true);
         } else {
             showToast(`Ошибка: ${result.error || 'Неизвестная ошибка'}`, true);
@@ -894,7 +873,7 @@ function applyFiltersAndRenderFast() {
     }
     
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
-    if (search) filtered = filtered.filter(o => o.storeNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
+    if (search) filtered = filtered.filter(o => o.storeNumber?.toLowerCase().includes(search) || o.manualNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
     renderOrdersFast(filtered);
 }
@@ -922,19 +901,26 @@ function renderOrdersFast(orders) {
         const storeNumber = order.storeNumber || '';
         const manualNumber = order.manualNumber || '';
         
-        // Показываем номер детали
-        let displayNumber = storeNumber;
-        if (manualNumber) {
+        // Определяем какой номер показывать
+        let displayNumber = '';
+        if (storeNumber && manualNumber) {
             displayNumber = `${storeNumber} → ${manualNumber}`;
+        } else if (storeNumber) {
+            displayNumber = storeNumber;
+        } else if (manualNumber) {
+            displayNumber = manualNumber;
+        } else {
+            displayNumber = '—';
         }
         
         const hasManualNumber = manualNumber && manualNumber !== '';
         
         let partNumberHtml = '';
-        if (storeNumber && storeNumber !== '—') {
-            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(storeNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(storeNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManualNumber ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
+        if (displayNumber !== '—') {
+            const copyNumber = storeNumber || manualNumber;
+            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(copyNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(copyNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManualNumber && storeNumber ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
         } else {
-            partNumberHtml = escapeHtml(storeNumber) || '—';
+            partNumberHtml = '—';
         }
         
         const fields = [
@@ -1084,7 +1070,6 @@ async function saveOrder() {
         const ts = now.toISOString();
         let lastRow = null;
         for (const it of itemsToSave) {
-            // Проверяем есть ли номер в MANUALS
             const checkResult = await checkManualExists(it.partNumber.trim());
             const manualNumber = checkResult.exists ? checkResult.manualNumber : '';
             
