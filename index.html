@@ -850,17 +850,8 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         photoUrlCache = {};
         
-        // === НОВАЯ ЛОГИКА: ИЗНАЧАЛЬНО СКРЫВАЕМ ДОСТАВЛЕННЫЕ, ПОКАЗЫВАЕМ ТОЛЬКО ЕСЛИ ВЫБРАН ФИЛЬТР "Доставленные" ===
-        // По умолчанию фильтр статуса = "all", но мы меняем поведение: 
-        // Устанавливаем внутреннее начальное состояние фильтрации, исключающее доставленные.
-        // Для этого применим фильтрацию прямо сейчас: показываем ВСЕ кроме ДОСТАВЛЕННЫХ.
-        // Фильтр "Все заказы" в UI будет показывать ВСЕ кроме доставленных, пока пользователь явно не выберет "Доставленные".
-        // Важно: фильтр "Все заказы" в интерфейсе по факту становится "Все, кроме доставленных", 
-        // а опция "Доставленные" - показывает только их.
-        // Визуально для пользователя это означает: по умолчанию доставленные скрыты.
-        // Обновим логику applyFiltersAndRenderFast с учётом нового требования.
-        
-        applyFiltersAndRenderFast(true); // true означает начальная загрузка (скрываем доставленные)
+        // Применяем фильтрацию с корректной логикой: активные = только статус "Активно"
+        applyFiltersAndRenderFast();
         
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
@@ -880,25 +871,24 @@ async function loadOrders(showLoading = true, highlightRow = null) {
 
 async function manualRefresh() { await loadOrders(true); }
 
-// Модифицированная функция фильтрации: по умолчанию скрываем доставленные, если не выбран фильтр "delivered"
-function applyFiltersAndRenderFast(initialLoad = false) {
+// ИСПРАВЛЕНА ФИЛЬТРАЦИЯ: активные - только статус "Активно", без "В пути"
+function applyFiltersAndRenderFast() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
     let filtered = [...allOrders];
     
-    // НОВАЯ ЛОГИКА: "Все заказы" (statusFilter === 'all') теперь означает ВСЕ КРОМЕ ДОСТАВЛЕННЫХ
-    // "delivered" показывает только доставленные, "active" - Активные (все кроме доставленных), "in_transit" - В пути
-    if (statusFilter === 'all') {
-        // По умолчанию: показываем все, кроме доставленных
-        filtered = filtered.filter(o => o.status !== 'Доставлено');
-    } else if (statusFilter === 'active') {
-        filtered = filtered.filter(o => o.status !== 'Доставлено');
+    if (statusFilter === 'active') {
+        // Активные: только статус "Активно" (НЕ "В пути" и НЕ "Доставлено")
+        filtered = filtered.filter(o => o.status === 'Активно');
     } else if (statusFilter === 'in_transit') {
         filtered = filtered.filter(o => o.status === 'В пути');
     } else if (statusFilter === 'delivered') {
-        // Только если пользователь выбрал фильтр "Доставленные" — показываем их
         filtered = filtered.filter(o => o.status === 'Доставлено');
+    } else if (statusFilter === 'all') {
+        // "Все заказы" - показываем всё (включая доставленные, в пути, активные)
+        // без дополнительных ограничений
+        // (оставляем как есть)
     }
     
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
