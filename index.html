@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-<title>PARTS ORDER — Заказ запчастей</title>
+<title>PARTS ORDER</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <style>
 :root {
@@ -638,7 +638,7 @@ function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
     modal.className = 'modal-overlay';
     modal.innerHTML = `
         <div class="modal-window">
-            <h3>Номер из MANUALS</h3>
+            <h3>Замена номера</h3>
             <p style="margin-bottom: 12px; font-size: 13px; color: #666;">Номер: <strong>${escapeHtml(storeNumber)}</strong></p>
             <input type="text" id="manualNumberInput" placeholder="Введите номер детали из MANUALS" autocomplete="off">
             <div class="modal-buttons">
