@@ -55,12 +55,11 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    /* убрали border-left и padding-left */
     padding-left: 0;
 }
-/* Стиль для логотипа в заголовке */
+/* Логотип увеличен */
 .form-title-logo {
-    height: 28px;
+    height: 38px;
     width: auto;
     display: inline-block;
     vertical-align: middle;
@@ -243,7 +242,7 @@ body {
     text-align: right;
     word-break: break-word;
 }
-/* стиль для блока номера: убрали иконку копирования, оставили функцию на всей строке */
+/* стиль для блока номера: без иконки копирования */
 .copy-part-number {
     cursor: pointer;
     display: inline-flex;
@@ -519,7 +518,7 @@ body {
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
     .form-card { padding: 16px; }
-    .form-title-logo { height: 22px; }
+    .form-title-logo { height: 28px; }
 }
 </style>
 </head>
@@ -528,7 +527,6 @@ body {
     <div id="main-content">
         <div class="form-card">
             <div class="form-title">
-                <!-- Логотип вместо иконки ручки и черточки -->
                 <img src="https://i.postimg.cc/QMc6D2w5/4.png" alt="logo" class="form-title-logo">
                 <span>Новый заказ запчастей</span>
             </div>
@@ -640,7 +638,7 @@ function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
     modal.className = 'modal-overlay';
     modal.innerHTML = `
         <div class="modal-window">
-            <h3><i class="fa-solid fa-book-open"></i> Номер из MANUALS</h3>
+            <h3>Номер из MANUALS</h3>
             <p style="margin-bottom: 12px; font-size: 13px; color: #666;">Номер: <strong>${escapeHtml(storeNumber)}</strong></p>
             <input type="text" id="manualNumberInput" placeholder="Введите номер детали из MANUALS" autocomplete="off">
             <div class="modal-buttons">
@@ -665,7 +663,7 @@ function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
         showToast('Сохранение...');
         const result = await saveManualNumberToOrder(row, manualNumber);
         if (result.success) {
-            showToast(`✅ Сохранено: ${manualNumber}`);
+            showToast(`Сохранено: ${manualNumber}`, false);
             await loadOrders(true);
         } else {
             showToast(`Ошибка: ${result.error || 'Неизвестная ошибка'}`, true);
@@ -675,12 +673,12 @@ function showManualNumberInput(storeNumber, row, cardElement, partSpan) {
 
 async function copyPartNumberToClipboard(partNumber, event) {
     if (!partNumber || partNumber === '—') {
-        showToast('❌ Нет номера для копирования', true);
+        showToast('Нет номера для копирования', true);
         return;
     }
     try {
         await navigator.clipboard.writeText(partNumber);
-        showToast(`✅ Скопировано: ${partNumber}`, false);
+        showToast(`Скопировано: ${partNumber}`, false);
         if (event && event.currentTarget) {
             const wrapper = event.currentTarget;
             wrapper.style.backgroundColor = '#e0e7ff';
@@ -695,7 +693,7 @@ async function copyPartNumberToClipboard(partNumber, event) {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        showToast(`📋 Скопировано: ${partNumber}`, false);
+        showToast(`Скопировано: ${partNumber}`, false);
     }
 }
 
@@ -793,7 +791,7 @@ function validateItems() {
 function showToast(msg, isError = false) {
     const toast = document.createElement('div');
     toast.className = 'toast' + (isError ? ' error' : '');
-    toast.innerHTML = isError ? `<i class="fas fa-circle-exclamation"></i> ${msg}` : `<i class="fas fa-copy"></i> ${msg}`;
+    toast.innerHTML = isError ? msg : msg;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
 }
@@ -851,7 +849,19 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         photoUrlCache = {};
-        applyFiltersAndRenderFast();
+        
+        // === НОВАЯ ЛОГИКА: ИЗНАЧАЛЬНО СКРЫВАЕМ ДОСТАВЛЕННЫЕ, ПОКАЗЫВАЕМ ТОЛЬКО ЕСЛИ ВЫБРАН ФИЛЬТР "Доставленные" ===
+        // По умолчанию фильтр статуса = "all", но мы меняем поведение: 
+        // Устанавливаем внутреннее начальное состояние фильтрации, исключающее доставленные.
+        // Для этого применим фильтрацию прямо сейчас: показываем ВСЕ кроме ДОСТАВЛЕННЫХ.
+        // Фильтр "Все заказы" в UI будет показывать ВСЕ кроме доставленных, пока пользователь явно не выберет "Доставленные".
+        // Важно: фильтр "Все заказы" в интерфейсе по факту становится "Все, кроме доставленных", 
+        // а опция "Доставленные" - показывает только их.
+        // Визуально для пользователя это означает: по умолчанию доставленные скрыты.
+        // Обновим логику applyFiltersAndRenderFast с учётом нового требования.
+        
+        applyFiltersAndRenderFast(true); // true означает начальная загрузка (скрываем доставленные)
+        
         if (filterBlock) filterBlock.style.display = 'block';
         if (highlightRow) {
             setTimeout(() => {
@@ -870,17 +880,24 @@ async function loadOrders(showLoading = true, highlightRow = null) {
 
 async function manualRefresh() { await loadOrders(true); }
 
-function applyFiltersAndRenderFast() {
+// Модифицированная функция фильтрации: по умолчанию скрываем доставленные, если не выбран фильтр "delivered"
+function applyFiltersAndRenderFast(initialLoad = false) {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
     let filtered = [...allOrders];
     
-    if (statusFilter === 'active') {
+    // НОВАЯ ЛОГИКА: "Все заказы" (statusFilter === 'all') теперь означает ВСЕ КРОМЕ ДОСТАВЛЕННЫХ
+    // "delivered" показывает только доставленные, "active" - Активные (все кроме доставленных), "in_transit" - В пути
+    if (statusFilter === 'all') {
+        // По умолчанию: показываем все, кроме доставленных
+        filtered = filtered.filter(o => o.status !== 'Доставлено');
+    } else if (statusFilter === 'active') {
         filtered = filtered.filter(o => o.status !== 'Доставлено');
     } else if (statusFilter === 'in_transit') {
         filtered = filtered.filter(o => o.status === 'В пути');
     } else if (statusFilter === 'delivered') {
+        // Только если пользователь выбрал фильтр "Доставленные" — показываем их
         filtered = filtered.filter(o => o.status === 'Доставлено');
     }
     
@@ -1108,7 +1125,7 @@ async function saveOrder() {
             if (res?.error) throw new Error(res.error);
             if (res?.row) lastRow = res.row;
         }
-        showToast(`✅ Сохранено ${itemsToSave.length} позиций`);
+        showToast(`Сохранено ${itemsToSave.length} позиций`, false);
         resetItemsToDefault();
         document.getElementById('clubSelect').value = '';
         await loadOrders(true, lastRow);
@@ -1126,7 +1143,7 @@ async function updateStatus(row, newStatus, selectEl) {
         if (idx !== -1) allOrders[idx].status = newStatus;
         applyFiltersAndRenderFast();
         setTimeout(() => loadAllPhotosInBackground(), 100);
-        showToast(`Статус изменён на "${newStatus}"`);
+        showToast(`Статус изменён на "${newStatus}"`, false);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectEl.value = original; }
     finally { selectEl.disabled = false; }
 }
@@ -1138,7 +1155,7 @@ async function deleteOrder(row, cardEl) {
     try {
         await callScriptAsync('deleteOrder', { row });
         await loadOrders(true);
-        showToast('Заказ удалён');
+        showToast('Заказ удалён', false);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); if(card){ card.style.opacity='1'; card.style.pointerEvents='auto'; } }
 }
 
@@ -1167,7 +1184,7 @@ async function uploadPhoto(file) {
         if (data.secure_url) {
             const res = await callScriptAsync('uploadPartPhoto', { partNumber: currentPartNumberForPhoto.trim(), imageUrl: data.secure_url, club: currentClubForPhoto });
             if (res?.success) {
-                showToast('✅ Фото сохранено');
+                showToast('Фото сохранено', false);
                 const cacheKey = `${currentClubForPhoto}_${currentPartNumberForPhoto}`;
                 photoUrlCache[cacheKey] = data.secure_url;
                 if (currentPhotoButton) {
@@ -1191,7 +1208,7 @@ function handleFileSelect(e) {
 function applyFilters() { applyFiltersAndRenderFast(); setTimeout(() => loadAllPhotosInBackground(), 100); }
 function clearSearchField() {
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) { searchInput.value = ''; applyFilters(); searchInput.focus(); showToast('Поле поиска очищено'); }
+    if (searchInput) { searchInput.value = ''; applyFilters(); searchInput.focus(); showToast('Поле поиска очищено', false); }
 }
 
 window.copyPartNumberToClipboard = copyPartNumberToClipboard;
