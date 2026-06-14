@@ -54,9 +54,16 @@ body {
     color: var(--dark);
     display: flex;
     align-items: center;
-    gap: 10px;
-    border-left: 4px solid var(--dark);
-    padding-left: 14px;
+    gap: 12px;
+    /* убрали border-left и padding-left */
+    padding-left: 0;
+}
+/* Стиль для логотипа в заголовке */
+.form-title-logo {
+    height: 28px;
+    width: auto;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .club-select {
@@ -236,7 +243,7 @@ body {
     text-align: right;
     word-break: break-word;
 }
-/* НОВЫЙ СТИЛЬ ДЛЯ БЛОКА НОМЕРА: убрали иконку копирования, оставили функцию на всей строке */
+/* стиль для блока номера: убрали иконку копирования, оставили функцию на всей строке */
 .copy-part-number {
     cursor: pointer;
     display: inline-flex;
@@ -257,7 +264,7 @@ body {
     background: #e0e7ff;
     transform: scale(0.98);
 }
-/* Восклицательный знак отдельно, цвет #dc143c, увеличенный отступ и размер */
+/* Восклицательный знак отдельно, цвет #dc143c */
 .warning-icon-separate {
     color: #dc143c;
     font-size: 16px;
@@ -274,7 +281,6 @@ body {
     transform: scale(1.2);
     opacity: 0.9;
 }
-/* Контейнер для номера и воскл знака, чтобы было удобно нажимать */
 .part-number-wrapper {
     display: inline-flex;
     align-items: center;
@@ -513,6 +519,7 @@ body {
     .part-row { gap: 8px; }
     .qty-input { width: 70px; }
     .form-card { padding: 16px; }
+    .form-title-logo { height: 22px; }
 }
 </style>
 </head>
@@ -520,7 +527,11 @@ body {
 <div class="wrapper">
     <div id="main-content">
         <div class="form-card">
-            <div class="form-title"><i class="fas fa-pen-alt"></i> Новый заказ запчастей</div>
+            <div class="form-title">
+                <!-- Логотип вместо иконки ручки и черточки -->
+                <img src="https://i.postimg.cc/QMc6D2w5/4.png" alt="logo" class="form-title-logo">
+                <span>Новый заказ запчастей</span>
+            </div>
             <select id="clubSelect" class="club-select">
                 <option value="" disabled selected>— Выберите боулинг-клуб —</option>
                 <option value="BLOCKBUSTER">BLOCKBUSTER</option>
@@ -923,7 +934,6 @@ function renderOrdersFast(orders) {
         
         let partNumberHtml = '';
         if (displayNumber !== '—') {
-            // Убрали иконку копирования, вся строка кликабельна. Восклицательный знак отдельно справа.
             partNumberHtml = `
                 <div class="part-number-wrapper">
                     <span class="copy-part-number" data-part-number="${escapeHtml(copyNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(copyNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">
