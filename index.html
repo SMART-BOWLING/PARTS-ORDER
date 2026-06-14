@@ -57,12 +57,18 @@ body {
     gap: 12px;
     padding-left: 0;
 }
-/* Логотип увеличен */
+/* Логотип увеличен и сделан кликабельным */
 .form-title-logo {
     height: 38px;
     width: auto;
     display: inline-block;
     vertical-align: middle;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.form-title-logo:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
 }
 
 .club-select {
@@ -527,7 +533,10 @@ body {
     <div id="main-content">
         <div class="form-card">
             <div class="form-title">
-                <img src="https://i.postimg.cc/QMc6D2w5/4.png" alt="logo" class="form-title-logo">
+                <!-- Логотип теперь кликабельный, ссылка открывается в новой вкладке -->
+                <a href="https://smart-bowling.github.io/SMB/" target="_blank" rel="noopener noreferrer" style="line-height: 0;">
+                    <img src="https://i.postimg.cc/QMc6D2w5/4.png" alt="logo" class="form-title-logo">
+                </a>
                 <span>Новый заказ запчастей</span>
             </div>
             <select id="clubSelect" class="club-select">
@@ -850,7 +859,6 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         photoUrlCache = {};
         
-        // Применяем фильтрацию с корректной логикой: активные = только статус "Активно"
         applyFiltersAndRenderFast();
         
         if (filterBlock) filterBlock.style.display = 'block';
@@ -871,7 +879,6 @@ async function loadOrders(showLoading = true, highlightRow = null) {
 
 async function manualRefresh() { await loadOrders(true); }
 
-// ИСПРАВЛЕНА ФИЛЬТРАЦИЯ: активные - только статус "Активно", без "В пути"
 function applyFiltersAndRenderFast() {
     const statusFilter = document.getElementById('statusFilter').value;
     const clubFilter = document.getElementById('clubFilter').value;
@@ -879,16 +886,13 @@ function applyFiltersAndRenderFast() {
     let filtered = [...allOrders];
     
     if (statusFilter === 'active') {
-        // Активные: только статус "Активно" (НЕ "В пути" и НЕ "Доставлено")
         filtered = filtered.filter(o => o.status === 'Активно');
     } else if (statusFilter === 'in_transit') {
         filtered = filtered.filter(o => o.status === 'В пути');
     } else if (statusFilter === 'delivered') {
         filtered = filtered.filter(o => o.status === 'Доставлено');
     } else if (statusFilter === 'all') {
-        // "Все заказы" - показываем всё (включая доставленные, в пути, активные)
-        // без дополнительных ограничений
-        // (оставляем как есть)
+        // "Все заказы" - показываем всё
     }
     
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
