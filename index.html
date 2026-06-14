@@ -236,16 +236,18 @@ body {
     text-align: right;
     word-break: break-word;
 }
+/* НОВЫЙ СТИЛЬ ДЛЯ БЛОКА НОМЕРА: убрали иконку копирования, оставили функцию на всей строке */
 .copy-part-number {
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     transition: all 0.2s ease;
-    padding: 4px 8px;
-    margin: -4px -8px;
+    padding: 6px 12px;
+    margin: -4px -6px;
     border-radius: 8px;
     background: transparent;
+    font-weight: 500;
 }
 .copy-part-number:hover {
     background: #eef2ff;
@@ -255,24 +257,28 @@ body {
     background: #e0e7ff;
     transform: scale(0.98);
 }
-.copy-part-number i {
-    font-size: 12px;
-    opacity: 0.6;
-    color: #4b5563;
-}
-.copy-part-number:hover i {
-    opacity: 1;
-    color: var(--accent);
-}
-.warning-icon {
-    color: #e67e22;
-    font-size: 14px;
-    margin-left: 4px;
+/* Восклицательный знак отдельно, цвет #dc143c, увеличенный отступ и размер */
+.warning-icon-separate {
+    color: #dc143c;
+    font-size: 16px;
+    margin-left: 8px;
+    margin-right: 2px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    transition: all 0.2s;
 }
-.warning-icon:hover {
-    opacity: 1;
-    transform: scale(1.1);
+.warning-icon-separate:hover {
+    transform: scale(1.2);
+    opacity: 0.9;
+}
+/* Контейнер для номера и воскл знака, чтобы было удобно нажимать */
+.part-number-wrapper {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
 }
 .status-select {
     padding: 6px 12px;
@@ -580,7 +586,6 @@ function getClubDisplayName(club) {
     return clubDisplayMap[club] || club;
 }
 
-// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С MANUALS ==========
 async function checkManualExists(storeNumber) {
     return new Promise((resolve) => {
         const callbackName = 'cb_check_' + Date.now();
@@ -666,15 +671,11 @@ async function copyPartNumberToClipboard(partNumber, event) {
         await navigator.clipboard.writeText(partNumber);
         showToast(`✅ Скопировано: ${partNumber}`, false);
         if (event && event.currentTarget) {
-            const icon = event.currentTarget.querySelector('i:not(.warning-icon)');
-            if (icon) {
-                icon.style.color = '#10b981';
-                icon.style.transform = 'scale(1.2)';
-                setTimeout(() => {
-                    icon.style.color = '';
-                    icon.style.transform = '';
-                }, 200);
-            }
+            const wrapper = event.currentTarget;
+            wrapper.style.backgroundColor = '#e0e7ff';
+            setTimeout(() => {
+                if (wrapper) wrapper.style.backgroundColor = '';
+            }, 200);
         }
     } catch (err) {
         const textarea = document.createElement('textarea');
@@ -902,28 +903,35 @@ function renderOrdersFast(orders) {
         const storeNumber = order.storeNumber || '';
         const manualNumber = order.manualNumber || '';
         
-        // ЛОГИКА ОТОБРАЖЕНИЯ: если есть manualNumber - показываем его, иначе storeNumber
         let displayNumber = '';
         let copyNumber = '';
+        let showWarning = false;
         
         if (manualNumber && manualNumber !== '') {
-            // Если есть номер из мануала - показываем его
             displayNumber = manualNumber;
             copyNumber = manualNumber;
+            showWarning = false;
         } else if (storeNumber && storeNumber !== '') {
-            // Если нет номера из мануала, но есть из магазина - показываем его + восклицательный знак
             displayNumber = storeNumber;
             copyNumber = storeNumber;
+            showWarning = true;
         } else {
             displayNumber = '—';
             copyNumber = '';
+            showWarning = false;
         }
-        
-        const hasManualNumber = manualNumber && manualNumber !== '';
         
         let partNumberHtml = '';
         if (displayNumber !== '—') {
-            partNumberHtml = `<span class="copy-part-number" data-part-number="${escapeHtml(copyNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(copyNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">${escapeHtml(displayNumber)} <i class="fa-regular fa-copy"></i>${!hasManualNumber && storeNumber ? '<i class="fa-solid fa-circle-exclamation warning-icon" style="cursor:pointer;" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>' : ''}</span>`;
+            // Убрали иконку копирования, вся строка кликабельна. Восклицательный знак отдельно справа.
+            partNumberHtml = `
+                <div class="part-number-wrapper">
+                    <span class="copy-part-number" data-part-number="${escapeHtml(copyNumber)}" data-row="${order.row}" onclick="copyPartNumberToClipboard('${escapeHtml(copyNumber)}', event)" title="Нажмите, чтобы скопировать номер детали">
+                        ${escapeHtml(displayNumber)}
+                    </span>
+                    ${showWarning ? `<i class="fa-solid fa-circle-exclamation warning-icon-separate" title="Номер отсутствует в MANUALS. Нажмите, чтобы добавить"></i>` : ''}
+                </div>
+            `;
         } else {
             partNumberHtml = '—';
         }
@@ -991,16 +999,16 @@ function renderOrdersFast(orders) {
         container.appendChild(card);
     }
     
-    // Добавляем обработчики для восклицательных знаков
     setTimeout(() => {
-        document.querySelectorAll('#ordersList .warning-icon').forEach(icon => {
-            const span = icon.closest('.copy-part-number');
-            const storeNumber = span?.getAttribute('data-part-number');
-            const row = span?.getAttribute('data-row');
+        document.querySelectorAll('#ordersList .warning-icon-separate').forEach(icon => {
+            const wrapperDiv = icon.closest('.part-number-wrapper');
+            const copySpan = wrapperDiv?.querySelector('.copy-part-number');
+            const storeNumber = copySpan?.getAttribute('data-part-number');
+            const row = copySpan?.getAttribute('data-row');
             if (storeNumber && row) {
                 icon.onclick = (e) => {
                     e.stopPropagation();
-                    showManualNumberInput(storeNumber, parseInt(row), span.closest('.card'), span);
+                    showManualNumberInput(storeNumber, parseInt(row), icon.closest('.card'), copySpan);
                 };
             }
         });
@@ -1020,7 +1028,6 @@ function escapeHtml(str) {
 async function loadAllPhotosInBackground() {
     const cards = document.querySelectorAll('#ordersList .card');
     for (const card of cards) {
-        // Сначала пробуем взять номер из manualNumber, если нет - из storeNumber
         let partNumber = card.getAttribute('data-manualnumber');
         if (!partNumber || partNumber === '') {
             partNumber = card.getAttribute('data-storenumber');
@@ -1079,10 +1086,8 @@ async function saveOrder() {
         const ts = now.toISOString();
         let lastRow = null;
         for (const it of itemsToSave) {
-            // Проверяем есть ли номер в MANUALS
             const checkResult = await checkManualExists(it.partNumber.trim());
             const manualNumber = checkResult.exists ? checkResult.manualNumber : '';
-            
             const res = await callScriptAsync('addOrder', { 
                 partNumber: it.partNumber.trim(), 
                 quantity: it.quantity, 
