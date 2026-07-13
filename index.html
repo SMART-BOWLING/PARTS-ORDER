@@ -57,7 +57,6 @@ body {
     gap: 12px;
     padding-left: 0;
 }
-/* Логотип увеличен и сделан кликабельным */
 .form-title-logo {
     height: 38px;
     width: auto;
@@ -248,7 +247,6 @@ body {
     text-align: right;
     word-break: break-word;
 }
-/* стиль для блока номера: без иконки копирования */
 .copy-part-number {
     cursor: pointer;
     display: inline-flex;
@@ -269,7 +267,6 @@ body {
     background: #e0e7ff;
     transform: scale(0.98);
 }
-/* Восклицательный знак отдельно, цвет #dc143c */
 .warning-icon-separate {
     color: #dc143c;
     font-size: 16px;
@@ -533,7 +530,6 @@ body {
     <div id="main-content">
         <div class="form-card">
             <div class="form-title">
-                <!-- Логотип теперь кликабельный, ссылка открывается в новой вкладке -->
                 <a href="https://smart-bowling.github.io/SMB/" target="_blank" rel="noopener noreferrer" style="line-height: 0;">
                     <img src="https://i.postimg.cc/QMc6D2w5/4.png" alt="logo" class="form-title-logo">
                 </a>
@@ -574,7 +570,7 @@ body {
 <input type="file" id="fileInput" class="hidden-file-input" accept="image/*">
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwBeTggNYAgBXTsn4xrbHjK3DsV8uemM6AuLhtqOlzOW-ASsR-NGXBnXz2en3q5P2-gjw/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyJu2G1lbNsWfqEAPda13hRl8xH9YJ3jX0nnbB2fOGu3TNSdfWF7KBaBF02Ll6DnUGxWA/exec';
 const CLOUDINARY_CLOUD_NAME = 'dplmdnxvk';
 const CLOUDINARY_UPLOAD_PRESET = 'ADD_SKYMALL';
 
@@ -588,6 +584,7 @@ let currentPhotoButton = null;
 let itemCounter = 0;
 let currentItems = [];
 let photoUrlCache = {};
+let stockCache = {};
 
 function normalizePartNumber(partNumber) {
     if (!partNumber) return '';
@@ -598,6 +595,12 @@ const clubDisplayMap = {
     'BLOCKBUSTER': 'BLOCKBUSTER',
     'SKYMALL': 'SKYMALL',
     'LUCKY STRIKE KH': 'LUCKY STRIKE KH'
+};
+
+const clubSheetMap = {
+    'BLOCKBUSTER': 'BB',
+    'SKYMALL': 'SKYMALL',
+    'LUCKY STRIKE KH': 'KH'
 };
 
 function getClubDisplayName(club) {
@@ -703,6 +706,26 @@ async function copyPartNumberToClipboard(partNumber, event) {
         document.execCommand('copy');
         document.body.removeChild(textarea);
         showToast(`Скопировано: ${partNumber}`, false);
+    }
+}
+
+async function getStockBalance(partNumber, club) {
+    const cacheKey = `${club}_${partNumber}`;
+    if (stockCache[cacheKey] !== undefined) {
+        return stockCache[cacheKey];
+    }
+    try {
+        const result = await callScriptAsync('getStockBalance', { partNumber: partNumber, club: club });
+        if (result && result.success) {
+            stockCache[cacheKey] = result.balance;
+            return result.balance;
+        } else {
+            stockCache[cacheKey] = '—';
+            return '—';
+        }
+    } catch (e) {
+        stockCache[cacheKey] = '—';
+        return '—';
     }
 }
 
@@ -858,6 +881,7 @@ async function loadOrders(showLoading = true, highlightRow = null) {
         allOrders.forEach(o => { o.timestampObj = parseTimestamp(o.timestamp); });
         allOrders.sort((a,b) => (b.timestampObj?.getTime()||0) - (a.timestampObj?.getTime()||0));
         photoUrlCache = {};
+        stockCache = {};
         
         applyFiltersAndRenderFast();
         
@@ -869,6 +893,7 @@ async function loadOrders(showLoading = true, highlightRow = null) {
             }, 100);
         }
         setTimeout(() => loadAllPhotosInBackground(), 100);
+        setTimeout(() => loadAllStockBalances(), 300);
     } catch(err) {
         console.error(err);
         if (container) container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i> ${err.message}<br><br><button onclick="manualRefresh()" style="background:#1a2f40;color:white;border:none;border-radius:6px;padding:8px 20px;">↻ Повторить</button></div>`;
@@ -892,13 +917,26 @@ function applyFiltersAndRenderFast() {
     } else if (statusFilter === 'delivered') {
         filtered = filtered.filter(o => o.status === 'Доставлено');
     } else if (statusFilter === 'all') {
-        // "Все заказы" - показываем всё
+        // Все заказы
     }
     
     if (clubFilter !== 'all') filtered = filtered.filter(o => o.club === clubFilter);
     if (search) filtered = filtered.filter(o => o.storeNumber?.toLowerCase().includes(search) || o.manualNumber?.toLowerCase().includes(search) || o.club?.toLowerCase().includes(search));
     filtered.sort((a,b)=> (b.timestampObj?.getTime()||0)-(a.timestampObj?.getTime()||0));
     renderOrdersFast(filtered);
+}
+
+async function loadAllStockBalances() {
+    const cards = document.querySelectorAll('#ordersList .card');
+    for (const card of cards) {
+        const partNumber = card.getAttribute('data-manualnumber') || card.getAttribute('data-storenumber');
+        const club = card.getAttribute('data-club');
+        if (!partNumber || !club) continue;
+        const balanceCell = card.querySelector('.stock-balance-cell');
+        if (!balanceCell) continue;
+        const balance = await getStockBalance(partNumber, club);
+        balanceCell.textContent = balance !== '—' ? `${balance} шт.` : '—';
+    }
 }
 
 function renderOrdersFast(orders) {
@@ -961,6 +999,7 @@ function renderOrdersFast(orders) {
             { label:'Номер детали', value: partNumberHtml },
             { label:'Количество', value: `${order.quantity} шт.` },
             { label:'Боулинг-клуб', value: getClubDisplayName(order.club) || '—' },
+            { label:'Остаток', value: `<span class="stock-balance-cell" data-part="${escapeHtml(copyNumber)}" data-club="${escapeHtml(order.club)}">загрузка...</span>` },
             { label:'Дата и время', value: dateStr }
         ];
         
@@ -971,7 +1010,7 @@ function renderOrdersFast(orders) {
             if (f.label === 'Номер детали') {
                 td2.innerHTML = f.value;
             } else {
-                td2.textContent = f.value;
+                td2.innerHTML = f.value;
             }
             tr.appendChild(td1); tr.appendChild(td2);
             table.appendChild(tr);
@@ -1137,6 +1176,7 @@ async function updateStatus(row, newStatus, selectEl) {
         if (idx !== -1) allOrders[idx].status = newStatus;
         applyFiltersAndRenderFast();
         setTimeout(() => loadAllPhotosInBackground(), 100);
+        setTimeout(() => loadAllStockBalances(), 200);
         showToast(`Статус изменён на "${newStatus}"`, false);
     } catch(err) { showToast(`Ошибка: ${err.message}`, true); selectEl.value = original; }
     finally { selectEl.disabled = false; }
@@ -1199,7 +1239,7 @@ function handleFileSelect(e) {
     document.getElementById('fileInput').value = '';
 }
 
-function applyFilters() { applyFiltersAndRenderFast(); setTimeout(() => loadAllPhotosInBackground(), 100); }
+function applyFilters() { applyFiltersAndRenderFast(); setTimeout(() => loadAllPhotosInBackground(), 100); setTimeout(() => loadAllStockBalances(), 200); }
 function clearSearchField() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) { searchInput.value = ''; applyFilters(); searchInput.focus(); showToast('Поле поиска очищено', false); }
